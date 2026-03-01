@@ -68,8 +68,8 @@ try {
   firebaseReady = false;
 }
 
-// ==================== DATA - 発達不全症 ====================
-const CHECK_ITEMS_HATTATSU = [
+// ==================== DATA ====================
+const CHECK_ITEMS = [
   { code:'C1', label:'歯の萌出に遅れがある', category:'chew', type:'clinic', inputType:'toggle' },
   { code:'C2', label:'機能的因子による歯列・咬合の異常がある', category:'chew', type:'clinic', inputType:'toggle' },
   { code:'C3', label:'咀嚼に影響するう蝕がある（C3以上）', category:'chew', type:'clinic', inputType:'toggle' },
@@ -94,7 +94,7 @@ const HABITS_LIST = [
   '抜けた前歯の隙間に舌を入れる','舌先を歯の裏側や歯の隙間に押しつける'
 ];
 
-const CATEGORY_LABELS_HATTATSU = {
+const CATEGORY_LABELS = {
   chew: '食べる機能（咀嚼）',
   swallow: '食べる機能（嚥下）',
   eat: '食べる機能（食行動）',
@@ -103,18 +103,7 @@ const CATEGORY_LABELS_HATTATSU = {
   body: '栄養（体格）'
 };
 
-// ==================== DATA - 口腔機能低下症 ====================
-const KAIKA_ITEMS = [
-  { code:'K1', label:'口腔衛生状態不良', shortLabel:'TCI', unit:'%' },
-  { code:'K2', label:'口腔乾燥', shortLabel:'口腔水分計', unit:'' },
-  { code:'K3', label:'咬合力低下', shortLabel:'残存歯数/デンタルプレスケール', unit:'' },
-  { code:'K4', label:'舌口唇運動機能低下', shortLabel:'オーラルディアドコキネシス', unit:'/sec' },
-  { code:'K5', label:'低舌圧', shortLabel:'舌圧測定器', unit:'kPa' },
-  { code:'K6', label:'咀嚼機能低下', shortLabel:'グルコース測定', unit:'mg/dl' },
-  { code:'K7', label:'嚥下機能低下', shortLabel:'EAT-10/RSST', unit:'' },
-];
-
-const PLAN_TEMPLATES_HATTATSU = {
+const PLAN_TEMPLATES = {
   C1:  { problem:'歯の生え変わりが遅れており、噛む力の発達やあごの成長に影響する可能性があります。', shortTerm:'3〜6か月ごとに歯の生え具合とレントゲンで経過を確認します。', longTerm:'永久歯のスペース管理とあごの成長確認を行い、必要に応じて矯正をご提案します。' },
   C2:  { problem:'口呼吸や舌の癖により、歯並び・かみ合わせが乱れるおそれがあります。', shortTerm:'くちびる・舌の力を測定し、お口の筋肉トレーニング（MFT）と鼻呼吸の練習を始めます。', longTerm:'機能改善後に矯正治療の必要性を判断します。' },
   C3:  { problem:'むし歯の痛みにより、片側だけで噛む癖がつきやすい状態です。', shortTerm:'むし歯の治療を優先し、痛みを取り除きます。', longTerm:'噛む練習とフッ素を活用したむし歯予防を続けます。' },
@@ -133,14 +122,25 @@ const PLAN_TEMPLATES_HATTATSU = {
   C16: { problem:'睡眠の質が低下し、あごの発育に影響するおそれがあります。', plan:'睡眠状態の評価と口呼吸の改善を行い、必要に応じて呼吸の改善につながる上あごを広げる装置をご提案します。' },
 };
 
+// ==================== DATA - 口腔機能低下症 ====================
+const KAIKA_ITEMS = [
+  { code:'K1', label:'口腔衛生状態不良', method:'TCI（舌苔付着度）', criterion:'50%以上で該当', unit:'%' },
+  { code:'K2', label:'口腔乾燥', method:'口腔水分計', criterion:'27未満で該当', unit:'' },
+  { code:'K3', label:'咬合力低下', method:'残存歯数/デンタルプレスケール', criterion:'20本未満 or 200N未満', unit:'' },
+  { code:'K4', label:'舌口唇運動機能低下', method:'オーラルディアドコキネシス', criterion:'pa/ta/kaいずれか6回/秒未満', unit:'回/秒' },
+  { code:'K5', label:'低舌圧', method:'舌圧測定器', criterion:'30kPa未満で該当', unit:'kPa' },
+  { code:'K6', label:'咀嚼機能低下', method:'グルコース測定', criterion:'100mg/dl未満で該当', unit:'mg/dl' },
+  { code:'K7', label:'嚥下機能低下', method:'EAT-10/RSST', criterion:'EAT-10: 3点以上で該当', unit:'点' },
+];
+
 const PLAN_TEMPLATES_KAIKA = {
-  K1:  { problem:'口腔衛生状態が低下し、むし歯や歯周病のリスクが高まります。', plan:'口腔衛生指導と定期的な歯のクリーニングを行います。' },
-  K2:  { problem:'口腔乾燥により、むし歯や舌炎の原因になりやすい状態です。', plan:'唾液分泌促進訓練と口腔保湿製品の使用を指導します。' },
-  K3:  { problem:'咬合力が低下し、食物を効率的に咀嚼できない状態です。', plan:'残存歯の保存治療と咀嚼機能訓練を行います。' },
-  K4:  { problem:'舌口唇運動が低下し、発音や嚥下に影響する可能性があります。', plan:'舌口唇の運動訓練（MFT）を実施します。' },
-  K5:  { problem:'舌圧が低下し、嚥下や発音の機能低下につながります。', plan:'舌筋の強化訓練を定期的に実施します。' },
-  K6:  { problem:'咀嚼機能が低下し、栄養摂取に影響するおそれがあります。', plan:'咀嚼訓練と栄養指導を行います。' },
-  K7:  { problem:'嚥下機能が低下し、誤嚥のリスクが高まります。', plan:'嚥下訓練と食事形態の見直しを行います。' },
+  K1: { problem:'口腔衛生状態が低下しており、むし歯や歯周病のリスクが高い状態です。', plan:'口腔衛生指導と定期的な専門的口腔ケアを行います。' },
+  K2: { problem:'口腔乾燥により、むし歯や口内炎のリスクが高い状態です。', plan:'唾液腺マッサージや保湿剤の使用を指導します。' },
+  K3: { problem:'咬合力が低下し、食べ物を効率的に噛めない状態です。', plan:'残存歯の保存治療と義歯の調整を行います。' },
+  K4: { problem:'舌や口唇の運動機能が低下し、発音や嚥下に影響しています。', plan:'口腔機能訓練（pa/ta/ka体操等）を実施します。' },
+  K5: { problem:'舌圧が低下し、食塊形成や嚥下に支障をきたしています。', plan:'舌の筋力強化訓練を定期的に実施します。' },
+  K6: { problem:'咀嚼機能が低下し、栄養摂取に影響するおそれがあります。', plan:'咀嚼訓練と食事形態の見直しを行います。' },
+  K7: { problem:'嚥下機能が低下し、誤嚥のリスクが高まっています。', plan:'嚥下訓練と食事姿勢の指導を行います。' },
 };
 
 // ==================== UTILITIES ====================
@@ -270,6 +270,7 @@ async function verifyPin(pin) {
 function isFirstRun() { return !localStorage.getItem(PIN_CHECK_KEY); }
 
 // ==================== FIRESTORE SYNC ====================
+// Save a single patient to Firestore
 async function savePatientToFirestore(patient) {
   if (!firebaseReady || !db) return;
   try {
@@ -279,6 +280,7 @@ async function savePatientToFirestore(patient) {
   }
 }
 
+// Save a single assessment to Firestore
 async function saveAssessmentToFirestore(assessment) {
   if (!firebaseReady || !db) return;
   try {
@@ -288,6 +290,7 @@ async function saveAssessmentToFirestore(assessment) {
   }
 }
 
+// Delete patient from Firestore
 async function deletePatientFromFirestore(patientId) {
   if (!firebaseReady || !db) return;
   try {
@@ -297,6 +300,7 @@ async function deletePatientFromFirestore(patientId) {
   }
 }
 
+// Load all data from Firestore
 async function loadDataFromFirestore() {
   if (!firebaseReady || !db) return null;
   try {
@@ -311,11 +315,6 @@ async function loadDataFromFirestore() {
     console.warn('Error loading data from Firestore:', e);
     return null;
   }
-}
-
-function getLegacyData() {
-  try { const d = localStorage.getItem('oralFuncData'); if(d) return JSON.parse(d); } catch{}
-  return null;
 }
 
 // ==================== PIN SCREEN ====================
@@ -349,8 +348,8 @@ function PinScreen({ onAuth }) {
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white flex items-center justify-center p-4">
       <div className="bg-white rounded-3xl card-shadow p-8 w-full max-w-sm text-center">
         <div className="text-4xl mb-4">🦷</div>
-        <h1 className="text-xl font-bold text-gray-800 mb-1">OralCare Pro</h1>
-        <h2 className="text-sm text-gray-500 mb-6">口腔機能管理アプリ</h2>
+        <h1 className="text-lg font-bold text-gray-800 mb-1">口腔機能発達不全症</h1>
+        <h2 className="text-sm text-gray-500 mb-6">管理アプリ</h2>
         {step === 'setup' && (
           <>
             <p className="text-sm text-gray-600 mb-4">初期設定：PINを設定してください</p>
@@ -408,20 +407,18 @@ function HomeScreen({ onSelectMode }) {
           <h1 className="text-2xl font-bold text-gray-800">OralCare Pro</h1>
           <p className="text-sm text-gray-500 mt-2">口腔機能管理システム</p>
         </div>
-
         <div className="space-y-4">
           <button onClick={()=>onSelectMode('hattatsu')}
-            className="w-full bg-gradient-to-br from-primary-500 to-primary-600 text-white rounded-3xl card-shadow p-8 active:opacity-90 transition">
+            className="w-full bg-gradient-to-br from-primary-500 to-primary-600 text-white rounded-3xl card-shadow p-8 active:opacity-90 transition text-left">
             <div className="text-4xl mb-3">👶</div>
             <h2 className="text-lg font-bold mb-1">口腔機能発達不全症</h2>
-            <p className="text-sm opacity-90">小児向け機能評価と管理</p>
+            <p className="text-sm opacity-90">小児の口腔機能評価・管理</p>
           </button>
-
           <button onClick={()=>onSelectMode('kaika')}
-            className="w-full bg-gradient-to-br from-kaika-500 to-kaika-600 text-white rounded-3xl card-shadow p-8 active:opacity-90 transition">
+            className="w-full bg-gradient-to-br from-teal-500 to-teal-600 text-white rounded-3xl card-shadow p-8 active:opacity-90 transition text-left">
             <div className="text-4xl mb-3">👵</div>
             <h2 className="text-lg font-bold mb-1">口腔機能低下症</h2>
-            <p className="text-sm opacity-90">成人・高齢者機能評価と管理</p>
+            <p className="text-sm opacity-90">成人・高齢者の口腔機能評価・管理</p>
           </button>
         </div>
       </div>
@@ -429,7 +426,19 @@ function HomeScreen({ onSelectMode }) {
   );
 }
 
-// ==================== COMPONENTS (共通) ====================
+// legacy migration: move unencrypted data
+function getLegacyData() {
+  try { const d = localStorage.getItem('oralFuncData'); if(d) return JSON.parse(d); } catch{}
+  return null;
+}
+
+// ==================== DATA (encrypted) ====================
+function loadData() { return { patients: [], assessments: [] }; }
+function saveData() { /* no-op: saving handled by App via encryptData */ }
+
+// ==================== COMPONENTS ====================
+
+// --- Field (外部定義でフォーカス維持) ---
 function Field({ label, children, half }) {
   return (
     <div className={half ? 'w-1/2' : 'w-full'}>
@@ -438,70 +447,38 @@ function Field({ label, children, half }) {
     </div>
   );
 }
-
 const inputCls = "w-full px-3 py-3 bg-gray-50 border border-gray-200 rounded-xl text-base";
 
-function Header({ title, onBack, rightAction, variant='hattatsu' }) {
-  const bgColor = variant === 'kaika' ? 'bg-kaika-600' : 'bg-primary-600';
+// --- Header ---
+function Header({ title, onBack, rightAction }) {
   return (
-    <div className={`no-print ${bgColor} text-white px-4 py-3 flex items-center justify-between sticky top-0 z-50`}>
+    <div className="no-print bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between sticky top-0 z-50">
       <div className="flex items-center gap-3">
         {onBack && (
-          <button onClick={onBack} className="toggle-btn flex items-center font-medium">
+          <button onClick={onBack} className="toggle-btn flex items-center text-primary-600 font-medium">
             <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7"/></svg>
             戻る
           </button>
         )}
-        <h1 className="text-lg font-bold">{title}</h1>
+        <h1 className="text-lg font-bold text-gray-800">{title}</h1>
       </div>
       {rightAction}
     </div>
   );
 }
 
-function LongPressButton({ onAction, className, children, label }) {
-  const [progress, setProgress] = useState(0);
-  const timerRef = useRef(null);
-  const startRef = useRef(null);
-  const DURATION = 2000;
-  const start = () => {
-    startRef.current = Date.now();
-    const animate = () => {
-      const elapsed = Date.now() - startRef.current;
-      const p = Math.min(elapsed / DURATION, 1);
-      setProgress(p);
-      if (p >= 1) { onAction(); setProgress(0); return; }
-      timerRef.current = requestAnimationFrame(animate);
-    };
-    timerRef.current = requestAnimationFrame(animate);
-  };
-  const end = () => {
-    if (timerRef.current) { cancelAnimationFrame(timerRef.current); timerRef.current = null; }
-    setProgress(0);
-  };
-  return (
-    <button onTouchStart={start} onTouchEnd={end} onTouchCancel={end}
-      onMouseDown={start} onMouseUp={end} onMouseLeave={end}
-      className={`relative overflow-hidden select-none ${className}`}
-      style={{WebkitUserSelect:'none',userSelect:'none'}}>
-      {progress > 0 && <div className="absolute inset-0 bg-white opacity-30" style={{width:`${progress*100}%`,transition:'none'}}/>}
-      <span className="relative z-10">{progress > 0 ? `${Math.round(progress*100)}%...` : (label || children)}</span>
-    </button>
-  );
-}
-
-// ==================== PATIENT LIST ====================
-function PatientList({ patients, assessments, onSelect, onAdd, onRestore, mode, onHome }) {
+// --- Patient List ---
+function PatientList({ patients, assessments, onSelect, onAdd, onRestore, onHome, mode }) {
   const [search, setSearch] = useState('');
   const [showBackupMenu, setShowBackupMenu] = useState(false);
   const [backupMsg, setBackupMsg] = useState('');
   const lastBackup = localStorage.getItem('lastBackupDate');
-  const modePatients = patients.filter(p => (p.mode||'hattatsu') === mode);
-  const filtered = modePatients.filter(p => p.name.includes(search) || (p.patientId||'').includes(search));
+  const filtered = patients.filter(p => p.name.includes(search) || (p.patientId||'').includes(search));
+  const modeTitle = mode === 'kaika' ? '口腔機能低下症' : '口腔機能発達不全症';
 
   const handleBackup = () => {
     const backupData = {
-      version: 2,
+      version: 1,
       exportDate: new Date().toISOString(),
       patients: patients,
       assessments: assessments
@@ -512,7 +489,7 @@ function PatientList({ patients, assessments, onSelect, onAdd, onRestore, mode, 
     const a = document.createElement('a');
     const dateStr = new Date().toISOString().slice(0,10).replace(/-/g,'');
     a.href = url;
-    a.download = `oral-care-backup-${dateStr}.json`;
+    a.download = `oral-func-backup-${dateStr}.json`;
     a.click();
     URL.revokeObjectURL(url);
     const now = new Date().toLocaleString('ja-JP');
@@ -552,15 +529,13 @@ function PatientList({ patients, assessments, onSelect, onAdd, onRestore, mode, 
     input.click();
   };
 
-  const title = mode === 'kaika' ? '口腔機能低下症 患者管理' : '口腔機能発達不全症 患者管理';
-  const variant = mode === 'kaika' ? 'kaika' : 'hattatsu';
-
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header title={title} onBack={onHome} variant={variant} rightAction={
+      <Header title={modeTitle} rightAction={
         <div className="flex gap-2">
-          <button onClick={()=>setShowBackupMenu(!showBackupMenu)} className="toggle-btn bg-white bg-opacity-20 text-white px-3 py-2 rounded-xl font-medium text-sm">⚙</button>
-          <button onClick={onAdd} className="toggle-btn bg-white text-gray-800 px-4 py-2 rounded-xl font-medium text-sm">＋ 新規患者</button>
+          {onHome && <button onClick={onHome} className="toggle-btn bg-gray-500 text-white px-3 py-2 rounded-xl font-medium text-sm">🏠</button>}
+          <button onClick={()=>setShowBackupMenu(!showBackupMenu)} className="toggle-btn bg-gray-500 text-white px-3 py-2 rounded-xl font-medium text-sm">⚙</button>
+          <button onClick={onAdd} className={mode === 'kaika' ? "toggle-btn bg-teal-600 text-white px-4 py-2 rounded-xl font-medium text-sm" : "toggle-btn bg-primary-600 text-white px-4 py-2 rounded-xl font-medium text-sm"}>＋ 新規患者</button>
         </div>
       }/>
       {backupMsg && (
@@ -592,28 +567,21 @@ function PatientList({ patients, assessments, onSelect, onAdd, onRestore, mode, 
           const age = calcAge(p.birthDate);
           const asmts = assessments.filter(a => a.patientId === p.id);
           const lastAsmt = asmts.length > 0 ? asmts[asmts.length-1] : null;
-
-          let checkedCount = 0;
-          if (mode === 'kaika' && lastAsmt) {
-            checkedCount = Object.entries(lastAsmt.kaikaItems||{}).filter(([k,v]) => v === true).length;
-          } else if (lastAsmt) {
-            checkedCount = Object.entries(lastAsmt.checks).filter(([k,v]) => {
-              if (k === 'C11') return v && v.length > 0;
-              if (k === 'C13') return v === 'underweight' || v === 'overweight';
-              if (k === 'C17') return v && v.length > 0;
-              return v === true;
-            }).length;
-          }
-
+          const checkedCount = lastAsmt ? Object.entries(lastAsmt.checks).filter(([k,v]) => {
+            if (k === 'C11') return v && v.length > 0;
+            if (k === 'C13') return v === 'underweight' || v === 'overweight';
+            if (k === 'C17') return v && v.length > 0;
+            return v === true;
+          }).length : 0;
           return (
             <button key={p.id} onClick={()=>onSelect(p)} className="w-full text-left bg-white rounded-2xl p-4 mb-3 card-shadow active:bg-gray-50 transition">
               <div className="flex justify-between items-start">
                 <div>
                   <div className="font-bold text-gray-800 text-base">{p.name}</div>
-                  <div className="text-sm text-gray-500 mt-1">{age !== null ? `${age}歳` : ''} {p.sex === 'M' ? '男' : p.sex === 'F' ? '女' : ''}</div>
+                  <div className="text-sm text-gray-500 mt-1">{age !== null ? `${age}歳` : ''} {p.sex === 'M' ? '男児' : p.sex === 'F' ? '女児' : ''}</div>
                 </div>
                 <div className="text-right">
-                  {lastAsmt && <span className={`inline-block text-xs font-bold px-2 py-1 rounded-lg ${mode === 'kaika' ? 'bg-kaika-50 text-kaika-600' : 'bg-red-50 text-red-600'}`}>該当 {checkedCount}項目</span>}
+                  {lastAsmt && <span className="inline-block bg-red-50 text-red-600 text-xs font-bold px-2 py-1 rounded-lg">該当 {checkedCount}項目</span>}
                 </div>
               </div>
               {lastAsmt && <div className="text-xs text-gray-400 mt-2">最終評価: {formatDate(lastAsmt.date)}</div>}
@@ -625,12 +593,11 @@ function PatientList({ patients, assessments, onSelect, onAdd, onRestore, mode, 
   );
 }
 
-// ==================== PATIENT FORM ====================
-function PatientForm({ patient, onSave, onCancel, mode }) {
+// --- Patient Form ---
+function PatientForm({ patient, onSave, onCancel }) {
   const initPatient = patient || {
     id: generateId(), patientId:'', name:'', birthDate:'', sex:'', weight:'', height:'',
-    guardianName:'', contact:'', doctor:'', firstVisitDate: new Date().toISOString().split('T')[0],
-    mode: mode
+    guardianName:'', contact:'', doctor:'', firstVisitDate: new Date().toISOString().split('T')[0]
   };
   if(initPatient.birthDate && !initPatient.birthDateRaw) { initPatient.birthDateRaw = initPatient.birthDate.replace(/-/g,''); }
   const [form, setForm] = useState(initPatient);
@@ -639,13 +606,10 @@ function PatientForm({ patient, onSave, onCancel, mode }) {
   const isKaup = age !== null && age < 6;
   const idx = isKaup ? calcKaup(parseFloat(form.weight), parseFloat(form.height)) : calcRohrer(parseFloat(form.weight), parseFloat(form.height));
 
-  const variant = mode === 'kaika' ? 'kaika' : 'hattatsu';
-  const title = patient ? "患者情報 編集" : "新規患者 登録";
-
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header title={title} onBack={onCancel} variant={variant} rightAction={
-        <button onClick={()=>onSave(form)} className="toggle-btn bg-white text-gray-800 px-5 py-2 rounded-xl font-medium text-sm">保存</button>
+      <Header title={patient ? "患者情報 編集" : "新規患者 登録"} onBack={onCancel} rightAction={
+        <button onClick={()=>onSave(form)} className="toggle-btn bg-primary-600 text-white px-5 py-2 rounded-xl font-medium text-sm">保存</button>
       }/>
       <div className="p-4 max-w-2xl mx-auto space-y-4">
         <div className="bg-white rounded-2xl p-4 card-shadow space-y-3">
@@ -667,12 +631,12 @@ function PatientForm({ patient, onSave, onCancel, mode }) {
             <Field label="性別" half>
               <div className="flex gap-2">
                 {[['M','男'],['F','女']].map(([v,l])=>(
-                  <button key={v} onClick={()=>set('sex',v)} className={`flex-1 py-3 rounded-xl text-sm font-medium border transition ${form.sex===v?(mode === 'kaika' ? 'bg-kaika-600 text-white border-kaika-600' : 'bg-primary-600 text-white border-primary-600'):'bg-gray-50 text-gray-600 border-gray-200'}`}>{l}</button>
+                  <button key={v} onClick={()=>set('sex',v)} className={`flex-1 py-3 rounded-xl text-sm font-medium border transition ${form.sex===v?'bg-primary-600 text-white border-primary-600':'bg-gray-50 text-gray-600 border-gray-200'}`}>{l}</button>
                 ))}
               </div>
             </Field>
           </div>
-          {age !== null && <div className={`text-sm font-medium rounded-lg px-3 py-2 ${mode === 'kaika' ? 'bg-kaika-50 text-kaika-600' : 'bg-primary-50 text-primary-600'}`}>年齢: {age}歳（{calcAgeMonths(form.birthDate)}か月）</div>}
+          {age !== null && <div className="text-sm text-primary-600 font-medium bg-primary-50 rounded-lg px-3 py-2">年齢: {age}歳（{calcAgeMonths(form.birthDate)}か月）</div>}
           <div className="flex gap-3">
             <Field label="体重 (kg)" half><input type="number" step="0.1" value={form.weight} onChange={e=>set('weight',e.target.value)} className={inputCls}/></Field>
             <Field label="身長 (cm)" half><input type="number" step="0.1" value={form.height} onChange={e=>set('height',e.target.value)} className={inputCls}/></Field>
@@ -698,183 +662,8 @@ function PatientForm({ patient, onSave, onCancel, mode }) {
   );
 }
 
-// ==================== KAIKA (口腔機能低下症) ASSESSMENT ====================
-function KaikaAssessmentForm({ patient, existingAssessment, onSave, onCancel }) {
-  const [kaikaItems, setKaikaItems] = useState(existingAssessment?.kaikaItems || {
-    K1: { value: '', positive: false },
-    K2: { value: '', positive: false },
-    K3: { value: '', subtype: 'teeth', positive: false },
-    K4: { pa: '', ta: '', ka: '', positive: false },
-    K5: { value: '', positive: false },
-    K6: { value: '', positive: false },
-    K7: { value: '', subtype: 'eat10', positive: false }
-  });
-  const [notes, setNotes] = useState(existingAssessment?.notes || '');
-
-  const updateItem = (code, field, val) => {
-    setKaikaItems(prev => ({...prev, [code]: {...prev[code], [field]: val}}));
-  };
-
-  const updatePositive = (code) => {
-    const item = kaikaItems[code];
-    let isPositive = false;
-
-    if (code === 'K1') isPositive = parseFloat(item.value) >= 50;
-    else if (code === 'K2') isPositive = parseFloat(item.value) < 27;
-    else if (code === 'K3') isPositive = item.subtype === 'teeth' ? parseFloat(item.value) < 20 : parseFloat(item.value) < 200;
-    else if (code === 'K4') isPositive = [item.pa, item.ta, item.ka].some(v => parseFloat(v) < 6);
-    else if (code === 'K5') isPositive = parseFloat(item.value) < 30;
-    else if (code === 'K6') isPositive = parseFloat(item.value) < 100;
-    else if (code === 'K7') isPositive = item.subtype === 'eat10' ? parseFloat(item.value) >= 3 : true;
-
-    updateItem(code, 'positive', isPositive);
-  };
-
-  const posCount = Object.values(kaikaItems).filter(item => item.positive).length;
-  const haKaikaShogai = posCount >= 3;
-
-  const handleSave = () => {
-    Object.keys(kaikaItems).forEach(code => updatePositive(code));
-    onSave({
-      id: existingAssessment?.id || generateId(),
-      patientId: patient.id,
-      date: new Date().toISOString().split('T')[0],
-      kaikaItems,
-      kaikaResult: haKaikaShogai,
-      notes,
-      plans: {}
-    });
-  };
-
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <Header title="口腔機能低下症 評価" onBack={onCancel} variant="kaika" rightAction={
-        <button onClick={handleSave} className="toggle-btn bg-white text-gray-800 px-4 py-2 rounded-xl font-medium text-sm">次へ →</button>
-      }/>
-      <div className="p-4 max-w-2xl mx-auto">
-        <div className={`rounded-xl p-3 mb-4 text-sm font-medium ${haKaikaShogai ? 'bg-kaika-50 text-kaika-700 border border-kaika-200' : 'bg-gray-50 text-gray-700'}`}>
-          該当項目: <span className="font-bold">{posCount}/7</span> {haKaikaShogai && '→ 口腔機能低下症に該当します'}
-        </div>
-
-        {KAIKA_ITEMS.map((item) => {
-          const data = kaikaItems[item.code];
-          return (
-            <div key={item.code} className="bg-white rounded-2xl card-shadow mb-4 p-4">
-              <div className={`flex items-center gap-2 mb-3 pb-3 border-b ${data.positive ? 'border-kaika-200' : 'border-gray-100'}`}>
-                <span className="inline-block bg-gray-100 text-gray-600 text-xs font-bold px-2 py-1 rounded">{item.code}</span>
-                <div className="flex-1">
-                  <div className="font-bold text-gray-800 text-sm">{item.label}</div>
-                  <div className="text-xs text-gray-500">{item.shortLabel}</div>
-                </div>
-                {data.positive && <span className="text-kaika-600 font-bold text-sm">+ 陽性</span>}
-              </div>
-
-              {item.code === 'K1' && (
-                <div className="space-y-2">
-                  <label className="text-xs text-gray-500">TCI（舌苔付着度）≥50% = 陽性</label>
-                  <input type="number" value={data.value} onChange={e=>{updateItem('K1','value',e.target.value);updatePositive('K1');}}
-                    className={inputCls} placeholder="0-100" min="0" max="100"/>
-                </div>
-              )}
-
-              {item.code === 'K2' && (
-                <div className="space-y-2">
-                  <label className="text-xs text-gray-500">口腔水分計 < 27 = 陽性</label>
-                  <input type="number" value={data.value} onChange={e=>{updateItem('K2','value',e.target.value);updatePositive('K2');}}
-                    className={inputCls} placeholder="測定値"/>
-                </div>
-              )}
-
-              {item.code === 'K3' && (
-                <div className="space-y-2">
-                  <div className="flex gap-2 mb-2">
-                    <button onClick={()=>{updateItem('K3','subtype','teeth');updatePositive('K3');}}
-                      className={`flex-1 py-2 rounded-lg text-sm font-medium transition ${data.subtype==='teeth'?'bg-kaika-600 text-white':'bg-gray-100 text-gray-600'}`}>
-                      残存歯数 (&lt;20)
-                    </button>
-                    <button onClick={()=>{updateItem('K3','subtype','pressure');updatePositive('K3');}}
-                      className={`flex-1 py-2 rounded-lg text-sm font-medium transition ${data.subtype==='pressure'?'bg-kaika-600 text-white':'bg-gray-100 text-gray-600'}`}>
-                      デンタルプレスケール (&lt;200N)
-                    </button>
-                  </div>
-                  <input type="number" value={data.value} onChange={e=>{updateItem('K3','value',e.target.value);updatePositive('K3');}}
-                    className={inputCls} placeholder={data.subtype==='teeth'?'本数':'N'}/>
-                </div>
-              )}
-
-              {item.code === 'K4' && (
-                <div className="space-y-2">
-                  <label className="text-xs text-gray-500">pa/ta/ka いずれかが &lt; 6/sec = 陽性</label>
-                  <div className="grid grid-cols-3 gap-2">
-                    <div>
-                      <label className="text-xs text-gray-500 mb-1 block">pa</label>
-                      <input type="number" value={data.pa} onChange={e=>{updateItem('K4','pa',e.target.value);updatePositive('K4');}}
-                        className={inputCls} placeholder="/sec"/>
-                    </div>
-                    <div>
-                      <label className="text-xs text-gray-500 mb-1 block">ta</label>
-                      <input type="number" value={data.ta} onChange={e=>{updateItem('K4','ta',e.target.value);updatePositive('K4');}}
-                        className={inputCls} placeholder="/sec"/>
-                    </div>
-                    <div>
-                      <label className="text-xs text-gray-500 mb-1 block">ka</label>
-                      <input type="number" value={data.ka} onChange={e=>{updateItem('K4','ka',e.target.value);updatePositive('K4');}}
-                        className={inputCls} placeholder="/sec"/>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {item.code === 'K5' && (
-                <div className="space-y-2">
-                  <label className="text-xs text-gray-500">舌圧 < 30 kPa = 陽性</label>
-                  <input type="number" value={data.value} onChange={e=>{updateItem('K5','value',e.target.value);updatePositive('K5');}}
-                    className={inputCls} placeholder="kPa" step="0.1"/>
-                </div>
-              )}
-
-              {item.code === 'K6' && (
-                <div className="space-y-2">
-                  <label className="text-xs text-gray-500">グルコース測定 < 100 mg/dl = 陽性</label>
-                  <input type="number" value={data.value} onChange={e=>{updateItem('K6','value',e.target.value);updatePositive('K6');}}
-                    className={inputCls} placeholder="mg/dl"/>
-                </div>
-              )}
-
-              {item.code === 'K7' && (
-                <div className="space-y-2">
-                  <div className="flex gap-2 mb-2">
-                    <button onClick={()=>{updateItem('K7','subtype','eat10');updatePositive('K7');}}
-                      className={`flex-1 py-2 rounded-lg text-sm font-medium transition ${data.subtype==='eat10'?'bg-kaika-600 text-white':'bg-gray-100 text-gray-600'}`}>
-                      EAT-10 (≥3)
-                    </button>
-                    <button onClick={()=>{updateItem('K7','subtype','rsst');updatePositive('K7');}}
-                      className={`flex-1 py-2 rounded-lg text-sm font-medium transition ${data.subtype==='rsst'?'bg-kaika-600 text-white':'bg-gray-100 text-gray-600'}`}>
-                      RSST
-                    </button>
-                  </div>
-                  {data.subtype === 'eat10' && (
-                    <input type="number" value={data.value} onChange={e=>{updateItem('K7','value',e.target.value);updatePositive('K7');}}
-                      className={inputCls} placeholder="スコア（0-40）" min="0" max="40"/>
-                  )}
-                </div>
-              )}
-            </div>
-          );
-        })}
-
-        <div className="bg-white rounded-2xl card-shadow p-4 mb-4">
-          <label className="text-xs font-medium text-gray-500 block mb-1">追加所見・メモ</label>
-          <textarea value={notes} onChange={e=>setNotes(e.target.value)}
-            className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm resize-none" rows={3} placeholder="自由記載..."/>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ==================== HATTATSU (発達不全症) ASSESSMENT ====================
-function HattatsuAssessmentForm({ patient, existingAssessment, onSave, onCancel }) {
+// --- Assessment Checklist ---
+function AssessmentForm({ patient, existingAssessment, onSave, onCancel }) {
   const age = calcAge(patient.birthDate);
   const isKaup = age !== null && age < 6;
   const idx = isKaup ? calcKaup(parseFloat(patient.weight), parseFloat(patient.height)) : calcRohrer(parseFloat(patient.weight), parseFloat(patient.height));
@@ -892,7 +681,7 @@ function HattatsuAssessmentForm({ patient, existingAssessment, onSave, onCancel 
   const holdStartRef = useRef(null);
   const HOLD_DURATION = 2000;
 
-  const handleModeToggle = () => {};
+  const handleModeToggle = () => {}; // 長押しのみで切り替え
   const handleHoldStart = () => {
     holdStartRef.current = Date.now();
     const targetMode = !patientMode;
@@ -931,29 +720,29 @@ function HattatsuAssessmentForm({ patient, existingAssessment, onSave, onCancel 
   };
 
   const categories = ['chew','swallow','eat','speak','body','other'];
-  const filteredItems = patientMode ? CHECK_ITEMS_HATTATSU.filter(i => i.type === 'patient') : CHECK_ITEMS_HATTATSU;
+  const filteredItems = patientMode ? CHECK_ITEMS.filter(i => i.type === 'patient') : CHECK_ITEMS;
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header title={patientMode ? "問診（患者さま用）" : "口腔機能評価チェックシート"} onBack={onCancel} variant="hattatsu" rightAction={
+      <Header title={patientMode ? "問診（患者さま用）" : "口腔機能評価チェックシート"} onBack={onCancel} rightAction={
         <div className="flex gap-2">
           <button
             onClick={handleModeToggle}
             onTouchStart={handleHoldStart} onTouchEnd={handleHoldEnd} onTouchCancel={handleHoldEnd}
             onMouseDown={handleHoldStart} onMouseUp={handleHoldEnd} onMouseLeave={handleHoldEnd}
-            className={`toggle-btn px-3 py-2 rounded-xl text-xs font-medium border relative overflow-hidden select-none ${patientMode?'bg-orange-600 text-white border-orange-600':'bg-orange-500 text-white border-orange-500'}`}
+            className={`toggle-btn px-3 py-2 rounded-xl text-xs font-medium border relative overflow-hidden select-none ${patientMode?'bg-dental-500 text-white border-dental-500':'bg-orange-500 text-white border-orange-500'}`}
             style={{WebkitUserSelect:'none',userSelect:'none'}}
           >
             {holdProgress > 0 && (
-              <div className={`absolute inset-0 opacity-40`} style={{background:patientMode ? 'blue' : 'yellow', width:`${holdProgress*100}%`,transition:'none'}}/>
+              <div className={`absolute inset-0 ${patientMode ? 'bg-blue-400' : 'bg-yellow-300'} opacity-40`} style={{width:`${holdProgress*100}%`,transition:'none'}}/>
             )}
             <span className="relative z-10">{holdProgress > 0 ? `切替中... ${Math.round(holdProgress*100)}%` : (patientMode ? '医院モードへ' : '患者モードへ')}</span>
           </button>
-          <button onClick={handleSave} className="toggle-btn bg-white text-gray-800 px-4 py-2 rounded-xl font-medium text-sm">次へ →</button>
+          <button onClick={handleSave} className="toggle-btn bg-primary-600 text-white px-4 py-2 rounded-xl font-medium text-sm">次へ →</button>
         </div>
       }/>
       <div className="p-4 max-w-2xl mx-auto">
-        <div className="bg-primary-50 rounded-xl p-3 mb-4 text-sm text-primary-700">
+        <div className="bg-blue-50 rounded-xl p-3 mb-4 text-sm text-blue-700">
           <span className="font-bold">{patient.name}</span>（{age}歳）の評価
         </div>
 
@@ -962,7 +751,7 @@ function HattatsuAssessmentForm({ patient, existingAssessment, onSave, onCancel 
           if (items.length === 0) return null;
           return (
             <div key={cat} className="mb-4">
-              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 px-1">{CATEGORY_LABELS_HATTATSU[cat]}</h3>
+              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 px-1">{CATEGORY_LABELS[cat]}</h3>
               <div className="bg-white rounded-2xl card-shadow overflow-hidden">
                 {items.map((item, i) => (
                   <div key={item.code} className={`p-4 ${i > 0 ? 'border-t border-gray-100' : ''}`}>
@@ -970,7 +759,7 @@ function HattatsuAssessmentForm({ patient, existingAssessment, onSave, onCancel 
                       <div className="flex-1">
                         <span className="inline-block bg-gray-100 text-gray-600 text-xs font-bold px-2 py-0.5 rounded mr-2">{item.code}</span>
                         <span className={`text-sm ${patientMode ? 'text-base' : ''}`}>{item.label}</span>
-                        {item.type === 'clinic' && !patientMode && <span className="text-xs text-primary-500 ml-2">医院</span>}
+                        {item.type === 'clinic' && !patientMode && <span className="text-xs text-blue-500 ml-2">医院</span>}
                         {item.type === 'patient' && !patientMode && <span className="text-xs text-green-500 ml-2">患者</span>}
                       </div>
                       {item.inputType === 'toggle' && (
@@ -997,10 +786,10 @@ function HattatsuAssessmentForm({ patient, existingAssessment, onSave, onCancel 
                           <div className="flex gap-2">
                             <button onClick={()=>setChecks(prev=>({...prev,C13_patient:'yes'}))} className={`toggle-btn px-3 py-2 rounded-xl text-sm font-medium transition ${checks.C13_patient==='yes'?'bg-red-500 text-white':'bg-gray-100 text-gray-500'}`}>はい</button>
                             <button onClick={()=>setChecks(prev=>({...prev,C13_patient:'no'}))} className={`toggle-btn px-3 py-2 rounded-xl text-sm font-medium transition ${checks.C13_patient==='no'?'bg-green-500 text-white':'bg-gray-100 text-gray-500'}`}>いいえ</button>
-                            <button onClick={()=>setChecks(prev=>({...prev,C13_patient:'unknown'}))} className={`toggle-btn px-3 py-2 rounded-xl text-sm font-medium transition ${checks.C13_patient==='unknown'?'bg-primary-500 text-white':'bg-gray-100 text-gray-500'}`}>わからない</button>
+                            <button onClick={()=>setChecks(prev=>({...prev,C13_patient:'unknown'}))} className={`toggle-btn px-3 py-2 rounded-xl text-sm font-medium transition ${checks.C13_patient==='unknown'?'bg-blue-500 text-white':'bg-gray-100 text-gray-500'}`}>わからない</button>
                           </div>
                           {checks.C13_patient==='unknown' && (
-                            <span className="text-xs text-primary-600 font-medium">→ 医院で測定します</span>
+                            <span className="text-xs text-blue-600 font-medium">→ 医院で測定します</span>
                           )}
                         </div>
                       )}
@@ -1082,123 +871,197 @@ function HattatsuAssessmentForm({ patient, existingAssessment, onSave, onCancel 
   );
 }
 
-// ==================== PATIENT DETAIL ====================
-function PatientDetail({ patient, assessments, onBack, onEdit, onNewAssessment, onSelectAssessment, onDeleteAssessment, mode }) {
-  const [deleteHold, setDeleteHold] = useState(null);
-  const [deleteProgress, setDeleteProgress] = useState(0);
-  const deleteTimerRef = useRef(null);
-  const deleteStartRef = useRef(null);
-  const DELETE_DURATION = 2000;
-  const handleDeleteStart = (aId) => {
-    setDeleteHold(aId);
-    deleteStartRef.current = Date.now();
+// --- Management Plan ---
+function LongPressButton({ onAction, className, children, label }) {
+  const [progress, setProgress] = useState(0);
+  const timerRef = useRef(null);
+  const startRef = useRef(null);
+  const DURATION = 2000;
+  const start = () => {
+    startRef.current = Date.now();
     const animate = () => {
-      const elapsed = Date.now() - deleteStartRef.current;
-      const progress = Math.min(elapsed / DELETE_DURATION, 1);
-      setDeleteProgress(progress);
-      if (progress >= 1) { onDeleteAssessment(aId); setDeleteHold(null); setDeleteProgress(0); return; }
-      deleteTimerRef.current = requestAnimationFrame(animate);
+      const elapsed = Date.now() - startRef.current;
+      const p = Math.min(elapsed / DURATION, 1);
+      setProgress(p);
+      if (p >= 1) { onAction(); setProgress(0); return; }
+      timerRef.current = requestAnimationFrame(animate);
     };
-    deleteTimerRef.current = requestAnimationFrame(animate);
+    timerRef.current = requestAnimationFrame(animate);
   };
-  const handleDeleteEnd = () => {
-    if (deleteTimerRef.current) { cancelAnimationFrame(deleteTimerRef.current); deleteTimerRef.current = null; }
-    setDeleteHold(null); setDeleteProgress(0);
+  const end = () => {
+    if (timerRef.current) { cancelAnimationFrame(timerRef.current); timerRef.current = null; }
+    setProgress(0);
   };
-  const age = calcAge(patient.birthDate);
-  const patientAssessments = assessments.filter(a => a.patientId === patient.id).sort((a,b) => new Date(b.date) - new Date(a.date));
-  const variant = mode === 'kaika' ? 'kaika' : 'hattatsu';
+  return (
+    <button onTouchStart={start} onTouchEnd={end} onTouchCancel={end}
+      onMouseDown={start} onMouseUp={end} onMouseLeave={end}
+      className={`relative overflow-hidden select-none ${className}`}
+      style={{WebkitUserSelect:'none',userSelect:'none'}}>
+      {progress > 0 && <div className="absolute inset-0 bg-white opacity-30" style={{width:`${progress*100}%`,transition:'none'}}/>}
+      <span className="relative z-10">{progress > 0 ? `${Math.round(progress*100)}%...` : (label || children)}</span>
+    </button>
+  );
+}
+
+// --- Kaika Assessment Form ---
+function KaikaAssessmentForm({ patient, existingAssessment, onSave, onCancel }) {
+  const initItems = existingAssessment ? existingAssessment.kaikaItems : {
+    K1: { value: '', positive: false },
+    K2: { value: '', positive: false },
+    K3: { value: '', subtype: 'teeth', positive: false },
+    K4: { pa: '', ta: '', ka: '', positive: false },
+    K5: { value: '', positive: false },
+    K6: { value: '', positive: false },
+    K7: { value: '', subtype: 'eat10', positive: false }
+  };
+  const [items, setItems] = useState(initItems);
+  const [notes, setNotes] = useState(existingAssessment ? (existingAssessment.notes || '') : '');
+
+  const updateField = (code, field, val) => {
+    setItems(prev => {
+      const updated = {...prev, [code]: {...prev[code], [field]: val}};
+      const item = updated[code];
+      let pos = false;
+      if (code === 'K1') pos = parseFloat(item.value) >= 50;
+      else if (code === 'K2') pos = item.value !== '' && parseFloat(item.value) < 27;
+      else if (code === 'K3') pos = item.subtype === 'teeth' ? (item.value !== '' && parseFloat(item.value) < 20) : (item.value !== '' && parseFloat(item.value) < 200);
+      else if (code === 'K4') pos = [item.pa, item.ta, item.ka].some(v => v !== '' && parseFloat(v) < 6);
+      else if (code === 'K5') pos = item.value !== '' && parseFloat(item.value) < 30;
+      else if (code === 'K6') pos = item.value !== '' && parseFloat(item.value) < 100;
+      else if (code === 'K7') pos = item.subtype === 'eat10' ? (item.value !== '' && parseFloat(item.value) >= 3) : (item.value !== '' && parseFloat(item.value) < 3);
+      updated[code] = {...updated[code], positive: pos};
+      return updated;
+    });
+  };
+
+  const posCount = Object.values(items).filter(i => i.positive).length;
+  const isKaika = posCount >= 3;
+
+  const handleSave = () => {
+    onSave({
+      id: existingAssessment ? existingAssessment.id : generateId(),
+      patientId: patient.id,
+      date: new Date().toISOString().split('T')[0],
+      type: 'kaika',
+      kaikaItems: items,
+      kaikaResult: isKaika,
+      kaikaPositiveCount: posCount,
+      notes: notes,
+      plans: existingAssessment ? (existingAssessment.plans || {}) : {}
+    });
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header title="患者詳細" onBack={onBack} variant={variant} rightAction={
-        <button onClick={onEdit} className="toggle-btn text-white font-medium text-sm">編集</button>
+      <Header title="口腔機能低下症 検査" onBack={onCancel} rightAction={
+        <button onClick={handleSave} className="toggle-btn bg-white text-gray-800 px-4 py-2 rounded-xl font-medium text-sm">保存 →</button>
       }/>
       <div className="p-4 max-w-2xl mx-auto">
-        <div className="bg-white rounded-2xl card-shadow p-4 mb-4">
-          <div className="flex justify-between items-start">
-            <div>
-              <div className="text-xl font-bold text-gray-800">{patient.name}</div>
-              <div className="text-sm text-gray-500 mt-1">{age !== null ? `${age}歳` : ''} {patient.sex==='M'?'男':patient.sex==='F'?'女':''}</div>
-            </div>
-            {patient.patientId && <span className="text-xs text-gray-400">ID: {patient.patientId}</span>}
-          </div>
-          <div className="grid grid-cols-2 gap-2 mt-3 text-sm">
-            <div className="text-gray-500">体重: <span className="text-gray-800">{patient.weight || '-'} kg</span></div>
-            <div className="text-gray-500">身長: <span className="text-gray-800">{patient.height || '-'} cm</span></div>
-            <div className="text-gray-500">保護者: <span className="text-gray-800">{patient.guardianName || '-'}</span></div>
-            <div className="text-gray-500">担当医: <span className="text-gray-800">{patient.doctor || '-'}</span></div>
-          </div>
+        <div className={`rounded-xl p-3 mb-4 text-sm font-medium text-center ${isKaika ? 'bg-teal-50 text-teal-700 border border-teal-200' : 'bg-gray-50 text-gray-600'}`}>
+          該当項目: <span className="font-bold text-lg">{posCount}/7</span>
+          {isKaika ? ' → 口腔機能低下症に該当' : ' （3項目以上で該当）'}
         </div>
 
-        <button onClick={onNewAssessment} className={`w-full ${variant === 'kaika' ? 'bg-kaika-600' : 'bg-primary-600'} text-white py-4 rounded-2xl font-bold text-base mb-4 active:opacity-90 transition card-shadow`}>
-          ＋ 新しい評価を開始
-        </button>
-
-        <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 px-1">評価履歴</h3>
-        {patientAssessments.length === 0 ? (
-          <div className="bg-white rounded-2xl card-shadow p-8 text-center text-gray-400 text-sm">まだ評価記録がありません</div>
-        ) : patientAssessments.map(a => {
-          let checkedCount = 0;
-          if (mode === 'kaika') {
-            checkedCount = Object.values(a.kaikaItems||{}).filter(item => item.positive).length;
-          } else {
-            checkedCount = Object.entries(a.checks).filter(([k,v])=>{
-              if(k==='C11') return v&&v.length>0;
-              if(k==='C13') return v==='underweight'||v==='overweight';
-              if(k==='C17') return v&&v.length>0;
-              return v===true;
-            }).length;
-          }
+        {KAIKA_ITEMS.map((ki) => {
+          const d = items[ki.code];
           return (
-            <div key={a.id} className="flex items-center gap-2 mb-3">
-              <button onClick={()=>onSelectAssessment(a)} className="flex-1 text-left bg-white rounded-2xl p-4 card-shadow active:bg-gray-50 transition">
-                <div className="flex justify-between items-center">
-                  <div className="text-sm font-medium text-gray-800">{formatDate(a.date)}</div>
-                  <div className="flex items-center gap-2">
-                    {a.plans && Object.keys(a.plans).length > 0 && <span className="text-green-600 text-xs font-medium">保存済み</span>}
-                    <span className={`text-xs font-bold px-2 py-1 rounded-lg ${variant === 'kaika' ? 'bg-kaika-50 text-kaika-600' : 'bg-red-50 text-red-600'}`}>該当 {checkedCount}項目</span>
-                  </div>
+            <div key={ki.code} className={`bg-white rounded-2xl card-shadow mb-3 p-4 ${d.positive ? 'ring-2 ring-teal-300' : ''}`}>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <span className="inline-block bg-gray-100 text-gray-600 text-xs font-bold px-2 py-1 rounded">{ki.code}</span>
+                  <span className="font-bold text-sm text-gray-800">{ki.label}</span>
                 </div>
-              </button>
-              <button
-                onTouchStart={()=>handleDeleteStart(a.id)} onTouchEnd={handleDeleteEnd} onTouchCancel={handleDeleteEnd}
-                onMouseDown={()=>handleDeleteStart(a.id)} onMouseUp={handleDeleteEnd} onMouseLeave={handleDeleteEnd}
-                className="relative overflow-hidden toggle-btn px-3 py-3 rounded-xl text-xs font-medium bg-red-50 text-red-500 border border-red-200 select-none shrink-0"
-                style={{WebkitUserSelect:'none',userSelect:'none'}}
-              >
-                {deleteHold === a.id && deleteProgress > 0 && (
-                  <div className="absolute inset-0 bg-red-500 opacity-30" style={{width:`${deleteProgress*100}%`,transition:'none'}}/>
-                )}
-                <span className="relative z-10">{deleteHold === a.id && deleteProgress > 0 ? '削除中...' : '削除'}</span>
-              </button>
+                {d.positive && <span className="text-teal-600 font-bold text-xs bg-teal-50 px-2 py-1 rounded">該当</span>}
+              </div>
+              <div className="text-xs text-gray-400 mb-2">{ki.method} — {ki.criterion}</div>
+
+              {ki.code === 'K1' && (
+                <input type="number" value={d.value} onChange={e => updateField('K1','value',e.target.value)}
+                  className="w-full px-3 py-3 bg-gray-50 border border-gray-200 rounded-xl text-base" placeholder="TCI値（%）"/>
+              )}
+              {ki.code === 'K2' && (
+                <input type="number" step="0.1" value={d.value} onChange={e => updateField('K2','value',e.target.value)}
+                  className="w-full px-3 py-3 bg-gray-50 border border-gray-200 rounded-xl text-base" placeholder="口腔水分計の値"/>
+              )}
+              {ki.code === 'K3' && (
+                <div>
+                  <div className="flex gap-2 mb-2">
+                    <button onClick={() => updateField('K3','subtype','teeth')}
+                      className={`flex-1 py-2 rounded-lg text-sm font-medium ${d.subtype==='teeth' ? 'bg-teal-500 text-white' : 'bg-gray-100 text-gray-600'}`}>残存歯数</button>
+                    <button onClick={() => updateField('K3','subtype','pressure')}
+                      className={`flex-1 py-2 rounded-lg text-sm font-medium ${d.subtype==='pressure' ? 'bg-teal-500 text-white' : 'bg-gray-100 text-gray-600'}`}>咬合圧(N)</button>
+                  </div>
+                  <input type="number" value={d.value} onChange={e => updateField('K3','value',e.target.value)}
+                    className="w-full px-3 py-3 bg-gray-50 border border-gray-200 rounded-xl text-base"
+                    placeholder={d.subtype==='teeth' ? '残存歯数（本）' : '咬合力（N）'}/>
+                </div>
+              )}
+              {ki.code === 'K4' && (
+                <div className="flex gap-2">
+                  {['pa','ta','ka'].map(s => (
+                    <div key={s} className="flex-1">
+                      <label className="text-xs text-gray-500 mb-1 block text-center">{s}</label>
+                      <input type="number" step="0.1" value={d[s]} onChange={e => updateField('K4',s,e.target.value)}
+                        className="w-full px-2 py-3 bg-gray-50 border border-gray-200 rounded-xl text-base text-center" placeholder="回/秒"/>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {ki.code === 'K5' && (
+                <input type="number" step="0.1" value={d.value} onChange={e => updateField('K5','value',e.target.value)}
+                  className="w-full px-3 py-3 bg-gray-50 border border-gray-200 rounded-xl text-base" placeholder="舌圧（kPa）"/>
+              )}
+              {ki.code === 'K6' && (
+                <input type="number" value={d.value} onChange={e => updateField('K6','value',e.target.value)}
+                  className="w-full px-3 py-3 bg-gray-50 border border-gray-200 rounded-xl text-base" placeholder="グルコース濃度（mg/dl）"/>
+              )}
+              {ki.code === 'K7' && (
+                <div>
+                  <div className="flex gap-2 mb-2">
+                    <button onClick={() => updateField('K7','subtype','eat10')}
+                      className={`flex-1 py-2 rounded-lg text-sm font-medium ${d.subtype==='eat10' ? 'bg-teal-500 text-white' : 'bg-gray-100 text-gray-600'}`}>EAT-10</button>
+                    <button onClick={() => updateField('K7','subtype','rsst')}
+                      className={`flex-1 py-2 rounded-lg text-sm font-medium ${d.subtype==='rsst' ? 'bg-teal-500 text-white' : 'bg-gray-100 text-gray-600'}`}>RSST</button>
+                  </div>
+                  <input type="number" value={d.value} onChange={e => updateField('K7','value',e.target.value)}
+                    className="w-full px-3 py-3 bg-gray-50 border border-gray-200 rounded-xl text-base"
+                    placeholder={d.subtype==='eat10' ? 'EAT-10スコア（点）' : 'RSST回数（回/30秒）'}/>
+                </div>
+              )}
             </div>
           );
         })}
+
+        <div className="bg-white rounded-2xl card-shadow p-4 mb-4">
+          <label className="text-xs font-medium text-gray-500 mb-1 block">備考</label>
+          <textarea value={notes} onChange={e=>setNotes(e.target.value)}
+            className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm" rows={2} placeholder="特記事項"/>
+        </div>
       </div>
     </div>
   );
 }
 
-// ==================== MANAGEMENT PLAN ====================
 function ManagementPlan({ patient, assessment, onSave, onBack, onPrint, mode }) {
-  const isKaika = mode === 'kaika';
   const [plans, setPlans] = useState(() => {
-    const initial = {};
-    if (isKaika) {
-      Object.entries(assessment.kaikaItems||{}).forEach(([code, item]) => {
-        if (item.positive && PLAN_TEMPLATES_KAIKA[code]) {
-          initial[code] = assessment.plans?.[code] || { ...PLAN_TEMPLATES_KAIKA[code] };
+    if (mode === 'kaika') {
+      const initial = {};
+      Object.keys(assessment.kaikaItems || {}).forEach(code => {
+        const item = assessment.kaikaItems[code];
+        if (item.positive) {
+          const tmpl = PLAN_TEMPLATES_KAIKA[code] || { problem:'', plan:'' };
+          initial[code] = { problem: tmpl.problem, plan: tmpl.plan };
         }
       });
-    } else {
-      Object.entries(assessment.checks).forEach(([code, val]) => {
-        const isChecked = code === 'C11' ? (val && val.length > 0) : code === 'C13' ? (val === 'underweight' || val === 'overweight') : code === 'C17' ? (val && val.length > 0) : val === true;
-        if (isChecked && PLAN_TEMPLATES_HATTATSU[code]) {
-          initial[code] = assessment.plans?.[code] || { ...PLAN_TEMPLATES_HATTATSU[code] };
-        }
-      });
+      return initial;
     }
+    const initial = {};
+    Object.entries(assessment.checks).forEach(([code, val]) => {
+      const isChecked = code === 'C11' ? (val && val.length > 0) : code === 'C13' ? (val === 'underweight' || val === 'overweight') : code === 'C17' ? (val && val.length > 0) : val === true;
+      if (isChecked && PLAN_TEMPLATES[code]) {
+        initial[code] = assessment.plans?.[code] || { ...PLAN_TEMPLATES[code] };
+      }
+    });
     return initial;
   });
   const [overallPlan, setOverallPlan] = useState(() => {
@@ -1206,22 +1069,14 @@ function ManagementPlan({ patient, assessment, onSave, onBack, onPrint, mode }) 
     const codes = Object.keys(plans);
     const lines = [];
     const has = (arr) => arr.some(c => codes.includes(c));
-
-    if (isKaika) {
-      if (has(['K1','K2','K3'])) lines.push('口腔衛生と咀嚼機能の改善を行います。');
-      if (has(['K4','K5'])) lines.push('舌口唇機能と舌圧の改善訓練を実施します。');
-      if (has(['K6','K7'])) lines.push('咀嚼・嚥下機能の評価と訓練を行います。');
-      lines.push('3か月ごとに再評価を行います。');
-    } else {
-      if (has(['C1','C2','C3','C4','C5','C6'])) lines.push('噛む機能の改善と咬合育成を行います。');
-      if (has(['C7','C9','C12'])) lines.push('舌の機能訓練（MFT）を実施します。');
-      if (has(['C10'])) lines.push('口唇閉鎖力の改善訓練を行います。');
-      if (has(['C14','C15','C16'])) lines.push('鼻呼吸への改善指導を行い、必要に応じて耳鼻科受診のご案内や上あごを広げる装置をご提案します。');
-      if (has(['C11'])) lines.push('口腔習癖の除去指導を行います。');
-      if (has(['C8'])) lines.push('食事・間食指導を行います。');
-      if (has(['C13'])) lines.push('栄養指導と体格管理を行います。');
-      lines.push('3か月ごとに再評価を行います。');
-    }
+    if (has(['C1','C2','C3','C4','C5','C6'])) lines.push('噛む機能の改善と咬合育成を行います。');
+    if (has(['C7','C9','C12'])) lines.push('舌の機能訓練（MFT）を実施します。');
+    if (has(['C10'])) lines.push('口唇閉鎖力の改善訓練を行います。');
+    if (has(['C14','C15','C16'])) lines.push('鼻呼吸への改善指導を行い、必要に応じて耳鼻科受診のご案内や上あごを広げる装置をご提案します。');
+    if (has(['C11'])) lines.push('口腔習癖の除去指導を行います。');
+    if (has(['C8'])) lines.push('食事・間食指導を行います。');
+    if (has(['C13'])) lines.push('栄養指導と体格管理を行います。');
+    lines.push('3か月ごとに再評価を行います。');
     return lines.map((l,i) => `${i+1}. ${l}`).join('\n');
   });
   const [notes, setNotes] = useState(assessment.notes || '');
@@ -1238,22 +1093,22 @@ function ManagementPlan({ patient, assessment, onSave, onBack, onPrint, mode }) 
   };
 
   const checkedCodes = Object.keys(plans).sort((a,b) => {
-    const numA = parseInt(a.replace(/[KC]/,''));
-    const numB = parseInt(b.replace(/[KC]/,''));
+    if (mode === 'kaika') {
+      const kaikaOrder = ['K1','K2','K3','K4','K5','K6','K7'];
+      return kaikaOrder.indexOf(a) - kaikaOrder.indexOf(b);
+    }
+    const numA = parseInt(a.replace('C',''));
+    const numB = parseInt(b.replace('C',''));
     return numA - numB;
   });
 
-  const ITEMS = isKaika ? KAIKA_ITEMS : CHECK_ITEMS_HATTATSU;
-  const variant = mode === 'kaika' ? 'kaika' : 'hattatsu';
-  const title = isKaika ? '口腔機能低下症 管理計画書' : '口腔機能発達不全症 管理計画書';
-
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header title={title} onBack={onBack} variant={variant} rightAction={
+      <Header title={mode === 'kaika' ? "管理計画書（口腔機能低下症）" : "管理計画書"} onBack={onBack} rightAction={
         <div className="flex gap-2">
-          <LongPressButton onAction={handleSave} className={`text-white px-4 py-2 rounded-xl font-medium text-sm ${variant === 'kaika' ? 'bg-kaika-600' : 'bg-primary-600'}`} label="保存"/>
+          <LongPressButton onAction={handleSave} className={mode === 'kaika' ? "bg-teal-600 text-white px-4 py-2 rounded-xl font-medium text-sm" : "bg-primary-600 text-white px-4 py-2 rounded-xl font-medium text-sm"} label="保存"/>
           {saveMsg && <span className="text-green-600 text-xs font-medium self-center">保存済み</span>}
-          <button onClick={()=>{handleSave();onPrint();}} className="toggle-btn bg-green-600 text-white px-4 py-2 rounded-xl font-medium text-sm">PDF出力</button>
+          <button onClick={()=>{handleSave();onPrint();}} className="toggle-btn bg-dental-600 text-white px-4 py-2 rounded-xl font-medium text-sm">PDF出力</button>
         </div>
       }/>
       {saveMsg && (
@@ -1262,7 +1117,7 @@ function ManagementPlan({ patient, assessment, onSave, onBack, onPrint, mode }) 
         </div>
       )}
       <div className="p-4 max-w-2xl mx-auto">
-        <div className={`rounded-xl p-3 mb-4 text-sm ${variant === 'kaika' ? 'bg-kaika-50 text-kaika-700' : 'bg-red-50 text-red-700'}`}>
+        <div className={mode === 'kaika' ? "bg-teal-50 rounded-xl p-3 mb-4 text-sm text-teal-700 border border-teal-200" : "bg-red-50 rounded-xl p-3 mb-4 text-sm text-red-700"}>
           該当項目: <span className="font-bold">{checkedCodes.length}項目</span>（{checkedCodes.join(', ')}）
         </div>
 
@@ -1271,11 +1126,11 @@ function ManagementPlan({ patient, assessment, onSave, onBack, onPrint, mode }) 
             <p>該当する評価項目がありません</p>
           </div>
         ) : checkedCodes.map(code => {
-          const item = ITEMS.find(i=>i.code===code);
+          const item = mode === 'kaika' ? KAIKA_ITEMS.find(i=>i.code===code) : CHECK_ITEMS.find(i=>i.code===code);
           const plan = plans[code];
           return (
             <div key={code} className="bg-white rounded-2xl card-shadow mb-4 overflow-hidden">
-              <div className={`text-white px-4 py-2 text-sm font-bold ${variant === 'kaika' ? 'bg-kaika-600' : 'bg-primary-600'}`}>
+              <div className={mode === 'kaika' ? "bg-teal-600 text-white px-4 py-2 text-sm font-bold" : "bg-primary-600 text-white px-4 py-2 text-sm font-bold"}>
                 {code} {item?.label}
               </div>
               <div className="p-4 space-y-3">
@@ -1284,7 +1139,13 @@ function ManagementPlan({ patient, assessment, onSave, onBack, onPrint, mode }) 
                   <textarea value={plan.problem} onChange={e=>updatePlan(code,'problem',e.target.value)}
                     className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm resize-none" rows={2}/>
                 </div>
-                {plan.shortTerm !== undefined ? (
+                {mode === 'kaika' ? (
+                  <div>
+                    <label className="text-xs font-medium text-gray-500 block mb-1">管理計画</label>
+                    <textarea value={plan.plan} onChange={e=>updatePlan(code,'plan',e.target.value)}
+                      className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm resize-none" rows={3}/>
+                  </div>
+                ) : plan.shortTerm !== undefined ? (
                   <>
                     <div>
                       <label className="text-xs font-medium text-gray-500 block mb-1">短期計画</label>
@@ -1310,7 +1171,7 @@ function ManagementPlan({ patient, assessment, onSave, onBack, onPrint, mode }) 
         })}
 
         <div className="bg-white rounded-2xl card-shadow mb-4 overflow-hidden">
-          <div className={`text-white px-4 py-2 text-sm font-bold ${variant === 'kaika' ? 'bg-kaika-700' : 'bg-gray-700'}`}>総合管理計画</div>
+          <div className="bg-gray-700 text-white px-4 py-2 text-sm font-bold">総合管理計画</div>
           <div className="p-4">
             <textarea value={overallPlan} onChange={e=>setOverallPlan(e.target.value)}
               className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm resize-none" rows={6}/>
@@ -1327,253 +1188,233 @@ function ManagementPlan({ patient, assessment, onSave, onBack, onPrint, mode }) 
   );
 }
 
-// ==================== PRINT VIEW ====================
+// --- Print View ---
 function PrintView({ patient, assessment, onClose, mode }) {
-  const isKaika = mode === 'kaika';
   const age = calcAge(patient.birthDate);
   const isKaup = age !== null && age < 6;
   const idx = isKaup ? calcKaup(parseFloat(patient.weight), parseFloat(patient.height)) : calcRohrer(parseFloat(patient.weight), parseFloat(patient.height));
   const plans = assessment.plans || {};
   const checkedCodes = Object.keys(plans).sort((a,b) => {
-    const numA = parseInt(a.replace(/[KC]/,''));
-    const numB = parseInt(b.replace(/[KC]/,''));
+    if (mode === 'kaika') {
+      const kaikaOrder = ['K1','K2','K3','K4','K5','K6','K7'];
+      return kaikaOrder.indexOf(a) - kaikaOrder.indexOf(b);
+    }
+    const numA = parseInt(a.replace('C',''));
+    const numB = parseInt(b.replace('C',''));
     return numA - numB;
   });
-  const ITEMS = isKaika ? KAIKA_ITEMS : CHECK_ITEMS_HATTATSU;
 
   return (
     <div>
       <div className="no-print bg-white border-b px-4 py-3 flex items-center justify-between sticky top-0 z-50">
-        <button onClick={onClose} className={`${isKaika ? 'text-kaika-600' : 'text-primary-600'} font-medium`}>← 戻る</button>
-        <LongPressButton onAction={()=>window.print()} className={`text-white px-6 py-2 rounded-xl font-medium text-sm ${isKaika ? 'bg-kaika-600' : 'bg-dental-600'}`} label="PDF保存 / 印刷"/>
+        <button onClick={onClose} className="text-primary-600 font-medium">← 戻る</button>
+        <LongPressButton onAction={()=>window.print()} className="bg-dental-600 text-white px-6 py-2 rounded-xl font-medium text-sm" label="PDF保存 / 印刷"/>
       </div>
 
-      {isKaika ? (
-        <>
-          {/* KAIKA Page 1: 評価表 */}
-          <div className="print-page max-w-3xl mx-auto p-6 bg-white" style={{minHeight:'auto'}}>
-            <h1 style={{fontSize:'18px',fontWeight:'bold',textAlign:'center',marginBottom:'4px'}}>口腔機能低下症 評価表</h1>
-            <div style={{textAlign:'center',fontSize:'12px',color:'#666',marginBottom:'16px'}}>評価日: {formatDate(assessment.date)}</div>
+      {/* Page 1: チェックシート */}
+      <div className="print-page max-w-3xl mx-auto p-6 bg-white" style={{minHeight:'auto'}}>
+        <h1 style={{fontSize:'18px',fontWeight:'bold',textAlign:'center',marginBottom:'4px'}}>口腔機能評価チェックシート</h1>
+        <div style={{textAlign:'center',fontSize:'12px',color:'#666',marginBottom:'16px'}}>評価日: {formatDate(assessment.date)}</div>
 
-            <table style={{width:'100%',borderCollapse:'collapse',fontSize:'13px',marginBottom:'12px'}}>
-              <tbody>
-                <tr><td style={{padding:'4px 8px',border:'1px solid #ddd',background:'#f5f5f5',width:'80px'}}>患者名</td><td style={{padding:'4px 8px',border:'1px solid #ddd'}}>{patient.name}</td>
-                    <td style={{padding:'4px 8px',border:'1px solid #ddd',background:'#f5f5f5',width:'80px'}}>年齢</td><td style={{padding:'4px 8px',border:'1px solid #ddd'}}>{age}歳</td></tr>
-                <tr><td style={{padding:'4px 8px',border:'1px solid #ddd',background:'#f5f5f5'}}>体重</td><td style={{padding:'4px 8px',border:'1px solid #ddd'}}>{patient.weight} kg</td>
-                    <td style={{padding:'4px 8px',border:'1px solid #ddd',background:'#f5f5f5'}}>身長</td><td style={{padding:'4px 8px',border:'1px solid #ddd'}}>{patient.height} cm</td></tr>
-                <tr><td style={{padding:'4px 8px',border:'1px solid #ddd',background:'#f5f5f5'}}>担当医</td><td colSpan="3" style={{padding:'4px 8px',border:'1px solid #ddd'}}>{patient.doctor || '-'}</td></tr>
-              </tbody>
-            </table>
+        <table style={{width:'100%',borderCollapse:'collapse',fontSize:'13px',marginBottom:'12px'}}>
+          <tbody>
+            <tr><td style={{padding:'4px 8px',border:'1px solid #ddd',background:'#f5f5f5',width:'80px'}}>患者名</td><td style={{padding:'4px 8px',border:'1px solid #ddd'}}>{patient.name}</td>
+                <td style={{padding:'4px 8px',border:'1px solid #ddd',background:'#f5f5f5',width:'80px'}}>年齢</td><td style={{padding:'4px 8px',border:'1px solid #ddd'}}>{age}歳</td></tr>
+            <tr><td style={{padding:'4px 8px',border:'1px solid #ddd',background:'#f5f5f5'}}>体重</td><td style={{padding:'4px 8px',border:'1px solid #ddd'}}>{patient.weight} kg</td>
+                <td style={{padding:'4px 8px',border:'1px solid #ddd',background:'#f5f5f5'}}>身長</td><td style={{padding:'4px 8px',border:'1px solid #ddd'}}>{patient.height} cm</td></tr>
+            <tr><td style={{padding:'4px 8px',border:'1px solid #ddd',background:'#f5f5f5'}}>{isKaup?'カウプ指数':'ローレル指数'}</td><td style={{padding:'4px 8px',border:'1px solid #ddd'}}>{idx || '-'}</td>
+                <td style={{padding:'4px 8px',border:'1px solid #ddd',background:'#f5f5f5'}}>口唇閉鎖力</td><td style={{padding:'4px 8px',border:'1px solid #ddd'}}>{assessment.lipForce ? assessment.lipForce+' N' : '-'}</td></tr>
+            <tr><td style={{padding:'4px 8px',border:'1px solid #ddd',background:'#f5f5f5'}}>舌圧</td><td style={{padding:'4px 8px',border:'1px solid #ddd'}}>{assessment.tonguePressure ? assessment.tonguePressure+' kPa' : '-'}</td>
+                <td style={{padding:'4px 8px',border:'1px solid #ddd',background:'#f5f5f5'}}>担当医</td><td style={{padding:'4px 8px',border:'1px solid #ddd'}}>{patient.doctor || '-'}</td></tr>
+          </tbody>
+        </table>
 
-            <table style={{width:'100%',borderCollapse:'collapse',fontSize:'12px'}}>
-              <thead>
-                <tr style={{background:'#0d9488',color:'white'}}>
-                  <th style={{padding:'6px',border:'1px solid #0d9488',width:'50px'}}>コード</th>
-                  <th style={{padding:'6px',border:'1px solid #0d9488',textAlign:'left'}}>評価項目</th>
-                  <th style={{padding:'6px',border:'1px solid #0d9488',width:'100px'}}>測定値</th>
-                  <th style={{padding:'6px',border:'1px solid #0d9488',width:'60px'}}>判定</th>
+        <table style={{width:'100%',borderCollapse:'collapse',fontSize:'12px'}}>
+          <thead>
+            <tr style={{background:'#2563eb',color:'white'}}>
+              <th style={{padding:'6px',border:'1px solid #2563eb',width:'50px'}}>コード</th>
+              <th style={{padding:'6px',border:'1px solid #2563eb',textAlign:'left'}}>評価項目</th>
+              <th style={{padding:'6px',border:'1px solid #2563eb',width:'60px'}}>結果</th>
+            </tr>
+          </thead>
+          <tbody>
+            {CHECK_ITEMS.map((item,i) => {
+              const val = assessment.checks[item.code];
+              let result = '-';
+              let isPositive = false;
+              if (item.code === 'C11') { isPositive = val && val.length > 0; result = isPositive ? val.join(', ') : '該当なし'; }
+              else if (item.code === 'C13') { isPositive = val==='underweight'||val==='overweight'; result = val==='normal'?'正常':val==='underweight'?'やせ':'肥満'; }
+              else if (item.code === 'C17') { isPositive = val && val.length > 0; result = isPositive ? '該当' : '-'; }
+              else { isPositive = val === true; result = val === true ? '該当' : '非該当'; }
+              return (
+                <tr key={item.code} style={{background: isPositive ? '#fef2f2' : i%2===0 ? '#fff' : '#f9fafb'}}>
+                  <td style={{padding:'4px 6px',border:'1px solid #ddd',textAlign:'center',fontWeight:'bold'}}>{item.code}</td>
+                  <td style={{padding:'4px 6px',border:'1px solid #ddd'}}>{item.label}</td>
+                  <td style={{padding:'4px 6px',border:'1px solid #ddd',textAlign:'center',color:isPositive?'#dc2626':'#666',fontWeight:isPositive?'bold':'normal'}}>{item.code==='C11' && isPositive ? '該当' : result}</td>
                 </tr>
-              </thead>
-              <tbody>
-                {KAIKA_ITEMS.map((item,i) => {
-                  const data = assessment.kaikaItems?.[item.code];
-                  let result = '-';
-                  let measurementValue = '-';
-                  if (data) {
-                    if (item.code === 'K1') measurementValue = `${data.value}%`;
-                    else if (item.code === 'K2') measurementValue = data.value;
-                    else if (item.code === 'K3') measurementValue = `${data.value}${data.subtype === 'teeth' ? '本' : 'N'}`;
-                    else if (item.code === 'K4') measurementValue = `pa:${data.pa} ta:${data.ta} ka:${data.ka}`;
-                    else if (item.code === 'K5') measurementValue = `${data.value}kPa`;
-                    else if (item.code === 'K6') measurementValue = `${data.value}mg/dl`;
-                    else if (item.code === 'K7') measurementValue = data.value;
-                    result = data.positive ? '陽性' : '陰性';
-                  }
-                  return (
-                    <tr key={item.code} style={{background: data?.positive ? '#f0fdfa' : i%2===0 ? '#fff' : '#f9fafb'}}>
-                      <td style={{padding:'4px 6px',border:'1px solid #ddd',textAlign:'center',fontWeight:'bold'}}>{item.code}</td>
-                      <td style={{padding:'4px 6px',border:'1px solid #ddd'}}>{item.label}</td>
-                      <td style={{padding:'4px 6px',border:'1px solid #ddd',textAlign:'center'}}>{measurementValue}</td>
-                      <td style={{padding:'4px 6px',border:'1px solid #ddd',textAlign:'center',color:data?.positive?'#059669':'#666',fontWeight:data?.positive?'bold':'normal'}}>{result}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+              );
+            })}
+          </tbody>
+        </table>
+        {assessment.checks.C11 && assessment.checks.C11.length > 0 && (
+          <div style={{fontSize:'11px',marginTop:'4px',color:'#666'}}>C11 口腔習癖: {assessment.checks.C11.join('、')}</div>
+        )}
+        {assessment.checks.C17 && (
+          <div style={{fontSize:'11px',marginTop:'4px',color:'#666'}}>C17 上記以外の問題点: {assessment.checks.C17}</div>
+        )}
+      </div>
 
-            <div style={{marginTop:'12px',fontSize:'12px',fontWeight:'bold'}}>
-              該当項目数: {Object.values(assessment.kaikaItems||{}).filter(item => item.positive).length}/7
-              {Object.values(assessment.kaikaItems||{}).filter(item => item.positive).length >= 3 && <span style={{color:'#059669'}}> → 口腔機能低下症に該当</span>}
-            </div>
-          </div>
+      {/* Page 2: 管理計画書 */}
+      <div className="print-page max-w-3xl mx-auto p-6 bg-white mt-4">
+        <h1 style={{fontSize:'18px',fontWeight:'bold',textAlign:'center',marginBottom:'4px',color:'#1d4ed8'}}>口腔機能発達不全症 管理計画書</h1>
+        <div style={{textAlign:'center',fontSize:'12px',color:'#666',marginBottom:'16px'}}>
+          患者名: {patient.name}　　作成日: {formatDate(assessment.date)}　　担当医: {patient.doctor || ''}
+        </div>
 
-          {/* KAIKA Page 2: 管理計画書 */}
-          <div className="print-page max-w-3xl mx-auto p-6 bg-white mt-4">
-            <h1 style={{fontSize:'18px',fontWeight:'bold',textAlign:'center',marginBottom:'4px',color:'#0d9488'}}>口腔機能低下症 管理計画書</h1>
-            <div style={{textAlign:'center',fontSize:'12px',color:'#666',marginBottom:'16px'}}>
-              患者名: {patient.name}　　作成日: {formatDate(assessment.date)}　　担当医: {patient.doctor || ''}
-            </div>
-
-            {checkedCodes.length > 0 && (
-              <table style={{width:'100%',borderCollapse:'collapse',fontSize:'12px',marginBottom:'16px'}}>
-                <thead>
-                  <tr style={{background:'#0d9488',color:'white'}}>
-                    <th style={{padding:'6px',border:'1px solid #0d9488',width:'100px'}}>項目</th>
-                    <th style={{padding:'6px',border:'1px solid #0d9488'}}>問題点</th>
-                    <th style={{padding:'6px',border:'1px solid #0d9488'}}>管理計画</th>
+        {checkedCodes.length > 0 && (
+          <table style={{width:'100%',borderCollapse:'collapse',fontSize:'12px',marginBottom:'16px'}}>
+            <thead>
+              <tr style={{background:'#1d4ed8',color:'white'}}>
+                <th style={{padding:'6px',border:'1px solid #1d4ed8',width:'100px'}}>項目</th>
+                <th style={{padding:'6px',border:'1px solid #1d4ed8'}}>問題点</th>
+                <th style={{padding:'6px',border:'1px solid #1d4ed8'}}>短期計画</th>
+                <th style={{padding:'6px',border:'1px solid #1d4ed8'}}>中長期計画</th>
+              </tr>
+            </thead>
+            <tbody>
+              {checkedCodes.map((code,i) => {
+                const item = CHECK_ITEMS.find(it=>it.code===code);
+                const plan = plans[code];
+                const is3stage = plan.shortTerm !== undefined;
+                return (
+                  <tr key={code} style={{background:i%2===0?'#fff':'#f9fafb'}}>
+                    <td style={{padding:'6px',border:'1px solid #ddd',fontWeight:'bold',verticalAlign:'top'}}>
+                      <div>{code}</div><div style={{fontSize:'10px',fontWeight:'normal',color:'#666'}}>{item?.label}</div>
+                    </td>
+                    <td style={{padding:'6px',border:'1px solid #ddd',verticalAlign:'top'}}>{plan.problem}</td>
+                    {is3stage ? (
+                      <>
+                        <td style={{padding:'6px',border:'1px solid #ddd',verticalAlign:'top'}}>{plan.shortTerm}</td>
+                        <td style={{padding:'6px',border:'1px solid #ddd',verticalAlign:'top'}}>{plan.longTerm}</td>
+                      </>
+                    ) : (
+                      <td colSpan={2} style={{padding:'6px',border:'1px solid #ddd',verticalAlign:'top'}}>{plan.plan}</td>
+                    )}
                   </tr>
-                </thead>
-                <tbody>
-                  {checkedCodes.map((code,i) => {
-                    const item = ITEMS.find(it=>it.code===code);
-                    const plan = plans[code];
-                    return (
-                      <tr key={code} style={{background:i%2===0?'#fff':'#f9fafb'}}>
-                        <td style={{padding:'6px',border:'1px solid #ddd',fontWeight:'bold',verticalAlign:'top'}}>
-                          <div>{code}</div><div style={{fontSize:'10px',fontWeight:'normal',color:'#666'}}>{item?.label}</div>
-                        </td>
-                        <td style={{padding:'6px',border:'1px solid #ddd',verticalAlign:'top'}}>{plan.problem}</td>
-                        <td style={{padding:'6px',border:'1px solid #ddd',verticalAlign:'top'}}>{plan.plan}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            )}
+                );
+              })}
+            </tbody>
+          </table>
+        )}
 
-            <div style={{border:'2px solid #374151',borderRadius:'8px',padding:'12px',marginBottom:'12px'}}>
-              <h3 style={{fontSize:'13px',fontWeight:'bold',marginBottom:'8px',color:'#374151'}}>総合管理計画</h3>
-              <div style={{fontSize:'12px',whiteSpace:'pre-line'}}>{assessment.overallPlan || ''}</div>
-            </div>
+        <div style={{border:'2px solid #374151',borderRadius:'8px',padding:'12px',marginBottom:'12px'}}>
+          <h3 style={{fontSize:'13px',fontWeight:'bold',marginBottom:'8px',color:'#374151'}}>総合管理計画</h3>
+          <div style={{fontSize:'12px',whiteSpace:'pre-line'}}>{assessment.overallPlan || ''}</div>
+        </div>
 
-            {assessment.notes && (
-              <div style={{border:'1px solid #ddd',borderRadius:'8px',padding:'12px'}}>
-                <h3 style={{fontSize:'13px',fontWeight:'bold',marginBottom:'4px',color:'#666'}}>追加所見</h3>
-                <div style={{fontSize:'12px',whiteSpace:'pre-line'}}>{assessment.notes}</div>
-              </div>
-            )}
-
-            <div style={{marginTop:'24px',fontSize:'11px',color:'#999',textAlign:'right'}}>
-              次回評価予定: ＿＿＿＿年＿＿月＿＿日
-            </div>
+        {assessment.notes && (
+          <div style={{border:'1px solid #ddd',borderRadius:'8px',padding:'12px'}}>
+            <h3 style={{fontSize:'13px',fontWeight:'bold',marginBottom:'4px',color:'#666'}}>追加所見</h3>
+            <div style={{fontSize:'12px',whiteSpace:'pre-line'}}>{assessment.notes}</div>
           </div>
-        </>
-      ) : (
-        <>
-          {/* HATTATSU Page 1: チェックシート */}
-          <div className="print-page max-w-3xl mx-auto p-6 bg-white" style={{minHeight:'auto'}}>
-            <h1 style={{fontSize:'18px',fontWeight:'bold',textAlign:'center',marginBottom:'4px'}}>口腔機能評価チェックシート</h1>
-            <div style={{textAlign:'center',fontSize:'12px',color:'#666',marginBottom:'16px'}}>評価日: {formatDate(assessment.date)}</div>
+        )}
 
-            <table style={{width:'100%',borderCollapse:'collapse',fontSize:'13px',marginBottom:'12px'}}>
-              <tbody>
-                <tr><td style={{padding:'4px 8px',border:'1px solid #ddd',background:'#f5f5f5',width:'80px'}}>患者名</td><td style={{padding:'4px 8px',border:'1px solid #ddd'}}>{patient.name}</td>
-                    <td style={{padding:'4px 8px',border:'1px solid #ddd',background:'#f5f5f5',width:'80px'}}>年齢</td><td style={{padding:'4px 8px',border:'1px solid #ddd'}}>{age}歳</td></tr>
-                <tr><td style={{padding:'4px 8px',border:'1px solid #ddd',background:'#f5f5f5'}}>体重</td><td style={{padding:'4px 8px',border:'1px solid #ddd'}}>{patient.weight} kg</td>
-                    <td style={{padding:'4px 8px',border:'1px solid #ddd',background:'#f5f5f5'}}>身長</td><td style={{padding:'4px 8px',border:'1px solid #ddd'}}>{patient.height} cm</td></tr>
-                <tr><td style={{padding:'4px 8px',border:'1px solid #ddd',background:'#f5f5f5'}}>{isKaup?'カウプ指数':'ローレル指数'}</td><td style={{padding:'4px 8px',border:'1px solid #ddd'}}>{idx || '-'}</td>
-                    <td style={{padding:'4px 8px',border:'1px solid #ddd',background:'#f5f5f5'}}>口唇閉鎖力</td><td style={{padding:'4px 8px',border:'1px solid #ddd'}}>{assessment.lipForce ? assessment.lipForce+' N' : '-'}</td></tr>
-                <tr><td style={{padding:'4px 8px',border:'1px solid #ddd',background:'#f5f5f5'}}>舌圧</td><td style={{padding:'4px 8px',border:'1px solid #ddd'}}>{assessment.tonguePressure ? assessment.tonguePressure+' kPa' : '-'}</td>
-                    <td style={{padding:'4px 8px',border:'1px solid #ddd',background:'#f5f5f5'}}>担当医</td><td style={{padding:'4px 8px',border:'1px solid #ddd'}}>{patient.doctor || '-'}</td></tr>
-              </tbody>
-            </table>
+        <div style={{marginTop:'24px',fontSize:'11px',color:'#999',textAlign:'right'}}>
+          次回評価予定: ＿＿＿＿年＿＿月＿＿日
+        </div>
+      </div>
+    </div>
+  );
+}
 
-            <table style={{width:'100%',borderCollapse:'collapse',fontSize:'12px'}}>
-              <thead>
-                <tr style={{background:'#2563eb',color:'white'}}>
-                  <th style={{padding:'6px',border:'1px solid #2563eb',width:'50px'}}>コード</th>
-                  <th style={{padding:'6px',border:'1px solid #2563eb',textAlign:'left'}}>評価項目</th>
-                  <th style={{padding:'6px',border:'1px solid #2563eb',width:'60px'}}>結果</th>
-                </tr>
-              </thead>
-              <tbody>
-                {CHECK_ITEMS_HATTATSU.map((item,i) => {
-                  const val = assessment.checks[item.code];
-                  let result = '-';
-                  let isPositive = false;
-                  if (item.code === 'C11') { isPositive = val && val.length > 0; result = isPositive ? val.join(', ') : '該当なし'; }
-                  else if (item.code === 'C13') { isPositive = val==='underweight'||val==='overweight'; result = val==='normal'?'正常':val==='underweight'?'やせ':'肥満'; }
-                  else if (item.code === 'C17') { isPositive = val && val.length > 0; result = isPositive ? '該当' : '-'; }
-                  else { isPositive = val === true; result = val === true ? '該当' : '非該当'; }
-                  return (
-                    <tr key={item.code} style={{background: isPositive ? '#fef2f2' : i%2===0 ? '#fff' : '#f9fafb'}}>
-                      <td style={{padding:'4px 6px',border:'1px solid #ddd',textAlign:'center',fontWeight:'bold'}}>{item.code}</td>
-                      <td style={{padding:'4px 6px',border:'1px solid #ddd'}}>{item.label}</td>
-                      <td style={{padding:'4px 6px',border:'1px solid #ddd',textAlign:'center',color:isPositive?'#dc2626':'#666',fontWeight:isPositive?'bold':'normal'}}>{item.code==='C11' && isPositive ? '該当' : result}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-            {assessment.checks.C11 && assessment.checks.C11.length > 0 && (
-              <div style={{fontSize:'11px',marginTop:'4px',color:'#666'}}>C11 口腔習癖: {assessment.checks.C11.join('、')}</div>
-            )}
-            {assessment.checks.C17 && (
-              <div style={{fontSize:'11px',marginTop:'4px',color:'#666'}}>C17 上記以外の問題点: {assessment.checks.C17}</div>
-            )}
+// --- Patient Detail ---
+function PatientDetail({ patient, assessments, onBack, onEdit, onNewAssessment, onSelectAssessment, onDeleteAssessment }) {
+  const [deleteHold, setDeleteHold] = useState(null);
+  const [deleteProgress, setDeleteProgress] = useState(0);
+  const deleteTimerRef = useRef(null);
+  const deleteStartRef = useRef(null);
+  const DELETE_DURATION = 2000;
+  const handleDeleteStart = (aId) => {
+    setDeleteHold(aId);
+    deleteStartRef.current = Date.now();
+    const animate = () => {
+      const elapsed = Date.now() - deleteStartRef.current;
+      const progress = Math.min(elapsed / DELETE_DURATION, 1);
+      setDeleteProgress(progress);
+      if (progress >= 1) { onDeleteAssessment(aId); setDeleteHold(null); setDeleteProgress(0); return; }
+      deleteTimerRef.current = requestAnimationFrame(animate);
+    };
+    deleteTimerRef.current = requestAnimationFrame(animate);
+  };
+  const handleDeleteEnd = () => {
+    if (deleteTimerRef.current) { cancelAnimationFrame(deleteTimerRef.current); deleteTimerRef.current = null; }
+    setDeleteHold(null); setDeleteProgress(0);
+  };
+  const age = calcAge(patient.birthDate);
+  const patientAssessments = assessments.filter(a => a.patientId === patient.id).sort((a,b) => new Date(b.date) - new Date(a.date));
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Header title="患者詳細" onBack={onBack} rightAction={
+        <button onClick={onEdit} className="toggle-btn text-primary-600 font-medium text-sm">編集</button>
+      }/>
+      <div className="p-4 max-w-2xl mx-auto">
+        <div className="bg-white rounded-2xl card-shadow p-4 mb-4">
+          <div className="flex justify-between items-start">
+            <div>
+              <div className="text-xl font-bold text-gray-800">{patient.name}</div>
+              <div className="text-sm text-gray-500 mt-1">{age !== null ? `${age}歳` : ''} {patient.sex==='M'?'男児':patient.sex==='F'?'女児':''}</div>
+            </div>
+            {patient.patientId && <span className="text-xs text-gray-400">ID: {patient.patientId}</span>}
           </div>
-
-          {/* HATTATSU Page 2: 管理計画書 */}
-          <div className="print-page max-w-3xl mx-auto p-6 bg-white mt-4">
-            <h1 style={{fontSize:'18px',fontWeight:'bold',textAlign:'center',marginBottom:'4px',color:'#1d4ed8'}}>口腔機能発達不全症 管理計画書</h1>
-            <div style={{textAlign:'center',fontSize:'12px',color:'#666',marginBottom:'16px'}}>
-              患者名: {patient.name}　　作成日: {formatDate(assessment.date)}　　担当医: {patient.doctor || ''}
-            </div>
-
-            {checkedCodes.length > 0 && (
-              <table style={{width:'100%',borderCollapse:'collapse',fontSize:'12px',marginBottom:'16px'}}>
-                <thead>
-                  <tr style={{background:'#1d4ed8',color:'white'}}>
-                    <th style={{padding:'6px',border:'1px solid #1d4ed8',width:'100px'}}>項目</th>
-                    <th style={{padding:'6px',border:'1px solid #1d4ed8'}}>問題点</th>
-                    <th style={{padding:'6px',border:'1px solid #1d4ed8'}}>短期計画</th>
-                    <th style={{padding:'6px',border:'1px solid #1d4ed8'}}>中長期計画</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {checkedCodes.map((code,i) => {
-                    const item = CHECK_ITEMS_HATTATSU.find(it=>it.code===code);
-                    const plan = plans[code];
-                    const is3stage = plan.shortTerm !== undefined;
-                    return (
-                      <tr key={code} style={{background:i%2===0?'#fff':'#f9fafb'}}>
-                        <td style={{padding:'6px',border:'1px solid #ddd',fontWeight:'bold',verticalAlign:'top'}}>
-                          <div>{code}</div><div style={{fontSize:'10px',fontWeight:'normal',color:'#666'}}>{item?.label}</div>
-                        </td>
-                        <td style={{padding:'6px',border:'1px solid #ddd',verticalAlign:'top'}}>{plan.problem}</td>
-                        {is3stage ? (
-                          <>
-                            <td style={{padding:'6px',border:'1px solid #ddd',verticalAlign:'top'}}>{plan.shortTerm}</td>
-                            <td style={{padding:'6px',border:'1px solid #ddd',verticalAlign:'top'}}>{plan.longTerm}</td>
-                          </>
-                        ) : (
-                          <td colSpan={2} style={{padding:'6px',border:'1px solid #ddd',verticalAlign:'top'}}>{plan.plan}</td>
-                        )}
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            )}
-
-            <div style={{border:'2px solid #374151',borderRadius:'8px',padding:'12px',marginBottom:'12px'}}>
-              <h3 style={{fontSize:'13px',fontWeight:'bold',marginBottom:'8px',color:'#374151'}}>総合管理計画</h3>
-              <div style={{fontSize:'12px',whiteSpace:'pre-line'}}>{assessment.overallPlan || ''}</div>
-            </div>
-
-            {assessment.notes && (
-              <div style={{border:'1px solid #ddd',borderRadius:'8px',padding:'12px'}}>
-                <h3 style={{fontSize:'13px',fontWeight:'bold',marginBottom:'4px',color:'#666'}}>追加所見</h3>
-                <div style={{fontSize:'12px',whiteSpace:'pre-line'}}>{assessment.notes}</div>
-              </div>
-            )}
-
-            <div style={{marginTop:'24px',fontSize:'11px',color:'#999',textAlign:'right'}}>
-              次回評価予定: ＿＿＿＿年＿＿月＿＿日
-            </div>
+          <div className="grid grid-cols-2 gap-2 mt-3 text-sm">
+            <div className="text-gray-500">体重: <span className="text-gray-800">{patient.weight || '-'} kg</span></div>
+            <div className="text-gray-500">身長: <span className="text-gray-800">{patient.height || '-'} cm</span></div>
+            <div className="text-gray-500">保護者: <span className="text-gray-800">{patient.guardianName || '-'}</span></div>
+            <div className="text-gray-500">担当医: <span className="text-gray-800">{patient.doctor || '-'}</span></div>
           </div>
-        </>
-      )}
+        </div>
+
+        <button onClick={onNewAssessment} className="w-full bg-primary-600 text-white py-4 rounded-2xl font-bold text-base mb-4 active:bg-primary-700 transition card-shadow">
+          ＋ 新しい評価を開始
+        </button>
+
+        <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 px-1">評価履歴</h3>
+        {patientAssessments.length === 0 ? (
+          <div className="bg-white rounded-2xl card-shadow p-8 text-center text-gray-400 text-sm">まだ評価記録がありません</div>
+        ) : patientAssessments.map(a => {
+          const checkedCount = Object.entries(a.checks).filter(([k,v])=>{
+            if(k==='C11') return v&&v.length>0;
+            if(k==='C13') return v==='underweight'||v==='overweight';
+            if(k==='C17') return v&&v.length>0;
+            return v===true;
+          }).length;
+          return (
+            <div key={a.id} className="flex items-center gap-2 mb-3">
+              <button onClick={()=>onSelectAssessment(a)} className="flex-1 text-left bg-white rounded-2xl p-4 card-shadow active:bg-gray-50 transition">
+                <div className="flex justify-between items-center">
+                  <div className="text-sm font-medium text-gray-800">{formatDate(a.date)}</div>
+                  <div className="flex items-center gap-2">
+                    {a.plans && Object.keys(a.plans).length > 0 && <span className="text-green-600 text-xs font-medium">保存済み</span>}
+                    <span className="bg-red-50 text-red-600 text-xs font-bold px-2 py-1 rounded-lg">該当 {checkedCount}項目</span>
+                  </div>
+                </div>
+              </button>
+              <button
+                onTouchStart={()=>handleDeleteStart(a.id)} onTouchEnd={handleDeleteEnd} onTouchCancel={handleDeleteEnd}
+                onMouseDown={()=>handleDeleteStart(a.id)} onMouseUp={handleDeleteEnd} onMouseLeave={handleDeleteEnd}
+                className="relative overflow-hidden toggle-btn px-3 py-3 rounded-xl text-xs font-medium bg-red-50 text-red-500 border border-red-200 select-none shrink-0"
+                style={{WebkitUserSelect:'none',userSelect:'none'}}
+              >
+                {deleteHold === a.id && deleteProgress > 0 && (
+                  <div className="absolute inset-0 bg-red-500 opacity-30" style={{width:`${deleteProgress*100}%`,transition:'none'}}/>
+                )}
+                <span className="relative z-10">{deleteHold === a.id && deleteProgress > 0 ? '削除中...' : '削除'}</span>
+              </button>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -1581,10 +1422,10 @@ function PrintView({ patient, assessment, onClose, mode }) {
 // ==================== APP ====================
 function App() {
   const [pin, setPin] = useState(null);
-  const [mode, setMode] = useState(null);
   const [data, setData] = useState({ patients: [], assessments: [] });
   const [ready, setReady] = useState(false);
-  const [page, setPage] = useState('home');
+  const [page, setPage] = useState('list');
+  const [mode, setMode] = useState(null);
   const [currentPatient, setCurrentPatient] = useState(null);
   const [currentAssessment, setCurrentAssessment] = useState(null);
   const [editingPatient, setEditingPatient] = useState(null);
@@ -1592,18 +1433,19 @@ function App() {
 
   const handleAuth = async (enteredPin) => {
     setPin(enteredPin);
+    // migrate legacy unencrypted data if exists
     const legacy = getLegacyData();
     let initialData = { patients: [], assessments: [] };
 
     if (legacy && (legacy.patients.length > 0 || legacy.assessments.length > 0)) {
       initialData = legacy;
-      initialData.patients.forEach(p => { if (!p.mode) p.mode = 'hattatsu'; });
       await encryptData(legacy, enteredPin);
       localStorage.removeItem('oralFuncData');
     } else {
       try { initialData = await decryptData(enteredPin); } catch { initialData = { patients: [], assessments: [] }; }
     }
 
+    // Try to load from Firestore first, fall back to local encrypted data
     if (firebaseReady && db) {
       const firestoreData = await loadDataFromFirestore();
       if (firestoreData && (firestoreData.patients.length > 0 || firestoreData.assessments.length > 0)) {
@@ -1615,31 +1457,45 @@ function App() {
     setReady(true);
   };
 
+  // Setup Firestore real-time listeners
   useEffect(() => {
     if (!pin || !ready || !firebaseReady || !db) return;
+
+    // Cleanup previous listeners
     firestoreListenersRef.current.forEach(unsubscribe => unsubscribe());
     firestoreListenersRef.current = [];
+
+    // Listen to patients collection
     const unsubPatients = db.collection('patients').onSnapshot(snapshot => {
       const patients = [];
       snapshot.forEach(doc => patients.push(doc.data()));
       setData(prev => ({ ...prev, patients }));
-    }, error => console.warn('Error listening to patients:', error));
+    }, error => {
+      console.warn('Error listening to patients:', error);
+    });
+
+    // Listen to assessments collection
     const unsubAssessments = db.collection('assessments').onSnapshot(snapshot => {
       const assessments = [];
       snapshot.forEach(doc => assessments.push(doc.data()));
       setData(prev => ({ ...prev, assessments }));
-    }, error => console.warn('Error listening to assessments:', error));
+    }, error => {
+      console.warn('Error listening to assessments:', error);
+    });
+
     firestoreListenersRef.current = [unsubPatients, unsubAssessments];
+
     return () => {
       firestoreListenersRef.current.forEach(unsubscribe => unsubscribe());
     };
   }, [pin, ready]);
 
+  // Save encrypted data to localStorage whenever data changes (offline backup)
   useEffect(() => { if (pin && ready) { encryptData(data, pin); } }, [data, pin, ready]);
 
   if (!pin) return <PinScreen onAuth={handleAuth}/>;
   if (!ready) return <div className="min-h-screen flex items-center justify-center"><p className="text-gray-400">読み込み中...</p></div>;
-  if (!mode) return <HomeScreen onSelectMode={m => { setMode(m); setPage('list'); }}/>;
+  if (!mode) return <HomeScreen onSelectMode={m => { setMode(m); setPage('list'); }}/>
 
   const savePatient = (p) => {
     if (!p.mode) p.mode = mode;
@@ -1650,6 +1506,7 @@ function App() {
       }
       return { ...prev, patients: [...prev.patients, p] };
     });
+    // Sync to Firestore
     savePatientToFirestore(p);
     setCurrentPatient(p);
     setPage('detail');
@@ -1663,6 +1520,7 @@ function App() {
       }
       return { ...prev, assessments: [...prev.assessments, a] };
     });
+    // Sync to Firestore
     saveAssessmentToFirestore(a);
     setCurrentAssessment(a);
     setPage('plan');
@@ -1673,6 +1531,7 @@ function App() {
       ...prev,
       assessments: prev.assessments.map(x => x.id === a.id ? a : x)
     }));
+    // Sync to Firestore
     saveAssessmentToFirestore(a);
     setCurrentAssessment(a);
   };
@@ -1682,12 +1541,14 @@ function App() {
       ...prev,
       assessments: prev.assessments.filter(a => a.id !== aId)
     }));
+    // Delete from Firestore
     try { db.collection('assessments').doc(aId).delete(); } catch(e) { console.log('Firestore delete error', e); }
   };
 
   const handleRestore = async (backupData) => {
-    backupData.patients.forEach(p => { if (!p.mode) p.mode = 'hattatsu'; });
+    // Update local state
     setData({ patients: backupData.patients, assessments: backupData.assessments });
+    // Sync each patient and assessment to Firestore
     if (firebaseReady && db) {
       for (const p of backupData.patients) {
         await savePatientToFirestore(p);
@@ -1704,6 +1565,7 @@ function App() {
       patients: prev.patients.filter(p => p.id !== id),
       assessments: prev.assessments.filter(a => a.patientId !== id)
     }));
+    // Delete from Firestore
     deletePatientFromFirestore(id);
     setPage('list');
   };
@@ -1713,21 +1575,22 @@ function App() {
   }
 
   if (page === 'list') {
-    return <PatientList patients={data.patients} assessments={data.assessments} mode={mode}
+    return <PatientList patients={data.patients.filter(p => (p.mode || 'hattatsu') === mode)} assessments={data.assessments}
       onSelect={p=>{setCurrentPatient(p);setPage('detail');}}
       onAdd={()=>{setEditingPatient(null);setPage('form');}}
       onRestore={handleRestore}
-      onHome={()=>{setMode(null);setPage('home');}}/>;
+      onHome={()=>{setMode(null);setPage('list');}}
+      mode={mode}/>;
   }
 
   if (page === 'form') {
-    return <PatientForm patient={editingPatient} mode={mode} onSave={savePatient} onCancel={()=>{
+    return <PatientForm patient={editingPatient} onSave={savePatient} onCancel={()=>{
       if(currentPatient) setPage('detail'); else setPage('list');
     }}/>;
   }
 
   if (page === 'detail' && currentPatient) {
-    return <PatientDetail patient={currentPatient} assessments={data.assessments} mode={mode}
+    return <PatientDetail patient={currentPatient} assessments={data.assessments}
       onBack={()=>setPage('list')}
       onEdit={()=>{setEditingPatient(currentPatient);setPage('form');}}
       onNewAssessment={()=>{setCurrentAssessment(null);setPage('assessment');}}
@@ -1740,23 +1603,23 @@ function App() {
       return <KaikaAssessmentForm patient={currentPatient} existingAssessment={currentAssessment}
         onSave={saveAssessment}
         onCancel={()=>setPage('detail')}/>;
-    } else {
-      return <HattatsuAssessmentForm patient={currentPatient} existingAssessment={currentAssessment}
-        onSave={saveAssessment}
-        onCancel={()=>setPage('detail')}/>;
     }
+    return <AssessmentForm patient={currentPatient} existingAssessment={currentAssessment}
+      onSave={saveAssessment}
+      onCancel={()=>setPage('detail')}/>;
   }
 
   if (page === 'plan' && currentPatient && currentAssessment) {
-    return <ManagementPlan patient={currentPatient} assessment={currentAssessment} mode={mode}
-      onSave={savePlan} onBack={()=>setPage('detail')} onPrint={()=>setPage('print')}/>;
+    return <ManagementPlan patient={currentPatient} assessment={currentAssessment}
+      onSave={savePlan} onBack={()=>setPage('detail')} onPrint={()=>setPage('print')} mode={mode}/>;
   }
 
-  return <PatientList patients={data.patients} assessments={data.assessments} mode={mode}
+  return <PatientList patients={data.patients.filter(p => (p.mode || 'hattatsu') === mode)} assessments={data.assessments}
     onSelect={p=>{setCurrentPatient(p);setPage('detail');}}
     onAdd={()=>{setEditingPatient(null);setPage('form');}}
     onRestore={handleRestore}
-    onHome={()=>{setMode(null);setPage('home');}}/>;
+    onHome={()=>{setMode(null);setPage('list');}}
+    mode={mode}/>;
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(<App />);
