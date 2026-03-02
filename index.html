@@ -11,7 +11,7 @@
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
-<script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/recharts@2.12.7/umd/Recharts.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <style>
@@ -999,15 +999,16 @@ function OdkTimer({ sound, onComplete, label }) {
 
 // --- Kaika Radar Chart ---
 function KaikaRadarChart({ items }) {
+  if (typeof Recharts === 'undefined') return null;
   const { RadarChart, PolarGrid, PolarAngleAxis, Radar, ResponsiveContainer } = Recharts;
   const chartData = [
-    { name: 'K1\n口腔衛生', value: items.K1.positive ? 1 : 0 },
-    { name: 'K2\n口腔乾燥', value: items.K2.positive ? 1 : 0 },
-    { name: 'K3\n咬合力', value: items.K3.positive ? 1 : 0 },
-    { name: 'K4\n舌口唇運動', value: items.K4.positive ? 1 : 0 },
-    { name: 'K5\n舌圧', value: items.K5.positive ? 1 : 0 },
-    { name: 'K6\n咀嚼機能', value: items.K6.positive ? 1 : 0 },
-    { name: 'K7\n嚥下機能', value: items.K7.positive ? 1 : 0 },
+    { name: 'K1 口腔衛生', value: items.K1.positive ? 1 : 0 },
+    { name: 'K2 口腔乾燥', value: items.K2.positive ? 1 : 0 },
+    { name: 'K3 咬合力', value: items.K3.positive ? 1 : 0 },
+    { name: 'K4 舌口唇運動', value: items.K4.positive ? 1 : 0 },
+    { name: 'K5 舌圧', value: items.K5.positive ? 1 : 0 },
+    { name: 'K6 咀嚼機能', value: items.K6.positive ? 1 : 0 },
+    { name: 'K7 嚥下機能', value: items.K7.positive ? 1 : 0 },
   ];
   return (
     <div className="bg-white rounded-2xl card-shadow p-4 mb-4">
