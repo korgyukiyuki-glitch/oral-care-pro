@@ -567,12 +567,12 @@ function PatientList({ patients, assessments, onSelect, onAdd, onRestore, onHome
           const age = calcAge(p.birthDate);
           const asmts = assessments.filter(a => a.patientId === p.id);
           const lastAsmt = asmts.length > 0 ? asmts[asmts.length-1] : null;
-          const checkedCount = lastAsmt ? Object.entries(lastAsmt.checks).filter(([k,v]) => {
+          const checkedCount = lastAsmt ? (lastAsmt.checks ? Object.entries(lastAsmt.checks).filter(([k,v]) => {
             if (k === 'C11') return v && v.length > 0;
             if (k === 'C13') return v === 'underweight' || v === 'overweight';
             if (k === 'C17') return v && v.length > 0;
             return v === true;
-          }).length : 0;
+          }).length : (lastAsmt.items ? Object.values(lastAsmt.items).filter(i => i.positive).length : 0)) : 0;
           return (
             <button key={p.id} onClick={()=>onSelect(p)} className="w-full text-left bg-white rounded-2xl p-4 mb-3 card-shadow active:bg-gray-50 transition">
               <div className="flex justify-between items-start">
@@ -1205,7 +1205,7 @@ function ManagementPlan({ patient, assessment, onSave, onBack, onPrint, mode }) 
       return initial;
     }
     const initial = {};
-    Object.entries(assessment.checks).forEach(([code, val]) => {
+    Object.entries(assessment.checks || {}).forEach(([code, val]) => {
       const isChecked = code === 'C11' ? (val && val.length > 0) : code === 'C13' ? (val === 'underweight' || val === 'overweight') : code === 'C17' ? (val && val.length > 0) : val === true;
       if (isChecked && PLAN_TEMPLATES[code]) {
         initial[code] = assessment.plans?.[code] || { ...PLAN_TEMPLATES[code] };
@@ -1388,7 +1388,7 @@ function PrintView({ patient, assessment, onClose, mode }) {
           </thead>
           <tbody>
             {CHECK_ITEMS.map((item,i) => {
-              const val = assessment.checks[item.code];
+              const val = assessment.checks?.[item.code];
               let result = '-';
               let isPositive = false;
               if (item.code === 'C11') { isPositive = val && val.length > 0; result = isPositive ? val.join(', ') : '該当なし'; }
@@ -1405,10 +1405,10 @@ function PrintView({ patient, assessment, onClose, mode }) {
             })}
           </tbody>
         </table>
-        {assessment.checks.C11 && assessment.checks.C11.length > 0 && (
+        {assessment.checks?.C11 && assessment.checks.C11.length > 0 && (
           <div style={{fontSize:'11px',marginTop:'4px',color:'#666'}}>C11 口腔習癖: {assessment.checks.C11.join('、')}</div>
         )}
-        {assessment.checks.C17 && (
+        {assessment.checks?.C17 && (
           <div style={{fontSize:'11px',marginTop:'4px',color:'#666'}}>C17 上記以外の問題点: {assessment.checks.C17}</div>
         )}
       </div>
@@ -1532,12 +1532,12 @@ function PatientDetail({ patient, assessments, onBack, onEdit, onNewAssessment, 
         {patientAssessments.length === 0 ? (
           <div className="bg-white rounded-2xl card-shadow p-8 text-center text-gray-400 text-sm">まだ評価記録がありません</div>
         ) : patientAssessments.map(a => {
-          const checkedCount = Object.entries(a.checks).filter(([k,v])=>{
+          const checkedCount = a.checks ? Object.entries(a.checks).filter(([k,v])=>{
             if(k==='C11') return v&&v.length>0;
             if(k==='C13') return v==='underweight'||v==='overweight';
             if(k==='C17') return v&&v.length>0;
             return v===true;
-          }).length;
+          }).length : (a.items ? Object.values(a.items).filter(i => i.positive).length : 0);
           return (
             <div key={a.id} className="flex items-center gap-2 mb-3">
               <button onClick={()=>onSelectAssessment(a)} className="flex-1 text-left bg-white rounded-2xl p-4 card-shadow active:bg-gray-50 transition">
