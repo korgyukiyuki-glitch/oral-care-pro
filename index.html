@@ -912,10 +912,11 @@ function KaikaAssessmentForm({ patient, existingAssessment, onSave, onCancel }) 
     K4: { pa: '', ta: '', ka: '', positive: false },
     K5: { value: '', positive: false },
     K6: { value: '', positive: false },
-    K7: { value: '', subtype: 'eat10', positive: false }
+    K7: { value: '', subtype: 'eat10', eat10answers: [0,0,0,0,0,0,0,0,0,0], positive: false }
   };
   const [items, setItems] = useState(initItems);
   const [notes, setNotes] = useState(existingAssessment ? (existingAssessment.notes || '') : '');
+  const [showEat10, setShowEat10] = useState(false);
 
   const updateField = (code, field, val) => {
     setItems(prev => {
@@ -936,7 +937,17 @@ function KaikaAssessmentForm({ patient, existingAssessment, onSave, onCancel }) 
       else if (code === 'K4') pos = [item.pa, item.ta, item.ka].some(v => v !== '' && parseFloat(v) < 6);
       else if (code === 'K5') pos = item.value !== '' && parseFloat(item.value) < 30;
       else if (code === 'K6') pos = item.value !== '' && parseFloat(item.value) < 100;
-      else if (code === 'K7') pos = item.subtype === 'eat10' ? (item.value !== '' && parseFloat(item.value) >= 3) : (item.value !== '' && parseFloat(item.value) < 3);
+      else if (code === 'K7') {
+        if (item.subtype === 'eat10' && item.eat10answers) {
+          const total = item.eat10answers.reduce((a,b) => a+b, 0);
+          updated[code] = {...updated[code], value: total.toString()};
+          pos = total >= 3;
+        } else if (item.subtype === 'eat10') {
+          pos = item.value !== '' && parseFloat(item.value) >= 3;
+        } else {
+          pos = item.value !== '' && parseFloat(item.value) < 3;
+        }
+      }
       updated[code] = {...updated[code], positive: pos};
       return updated;
     });
@@ -958,6 +969,76 @@ function KaikaAssessmentForm({ patient, existingAssessment, onSave, onCancel }) 
       plans: existingAssessment ? (existingAssessment.plans || {}) : {}
     });
   };
+
+  const EAT10_QUESTIONS = [
+    '飲み込みの問題のせいで、体重が減少してきた',
+    '飲み込みの問題が、外食に行くための障害になっている',
+    '液体を飲み込む時に、余分な努力が必要だ',
+    '固形物を飲み込む時に、余分な努力が必要だ',
+    '錠剤を飲み込む時に、余分な努力が必要だ',
+    '飲み込むことが苦痛だ',
+    '食べる喜びが飲み込みの問題に影響されている',
+    '飲み込む時に食べ物がのどに引っかかる',
+    '食べる時に咳が出る',
+    '飲み込むことはストレスが多い'
+  ];
+
+  const eat10answers = items.K7.eat10answers || [0,0,0,0,0,0,0,0,0,0];
+  const eat10Total = eat10answers.reduce((a,b) => a+b, 0);
+
+  if (showEat10) {
+    return (
+      <div className="min-h-screen bg-white">
+        <div className="bg-teal-600 text-white px-4 py-4 text-center">
+          <div className="text-2xl mb-1">嚥下スクリーニング</div>
+          <div className="text-sm opacity-90">それぞれの質問について、あてはまる程度を選んでください</div>
+        </div>
+        <div className="p-4 max-w-lg mx-auto">
+          <div className="flex justify-between text-xs text-gray-500 mb-2 px-1">
+            <span>0: 問題なし</span><span>4: ひどく問題</span>
+          </div>
+          {EAT10_QUESTIONS.map((q, qi) => (
+            <div key={qi} className="mb-4 bg-gray-50 rounded-2xl p-4">
+              <div className="text-sm font-medium text-gray-800 mb-3">
+                <span className="text-teal-600 font-bold mr-1">{qi+1}.</span>{q}
+              </div>
+              <div className="flex gap-2">
+                {[0,1,2,3,4].map(score => (
+                  <button key={score} onClick={() => {
+                    const newAnswers = [...eat10answers];
+                    newAnswers[qi] = score;
+                    updateField('K7','eat10answers',newAnswers);
+                  }}
+                    className={`flex-1 py-3 rounded-xl text-lg font-bold transition ${
+                      eat10answers[qi] === score
+                        ? 'bg-teal-500 text-white shadow-md'
+                        : 'bg-white text-gray-600 border border-gray-200'
+                    }`}>
+                    {score}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+          <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4 -mx-4">
+            <div className="text-center mb-3">
+              <span className="text-lg text-gray-600">合計スコア: </span>
+              <span className={`text-3xl font-bold ${eat10Total >= 3 ? 'text-red-500' : 'text-teal-600'}`}>{eat10Total}</span>
+              <span className="text-lg text-gray-600">/40</span>
+              {eat10Total >= 3 && <div className="text-red-500 text-sm mt-1">嚥下機能に問題の可能性があります</div>}
+            </div>
+            <button onClick={() => {
+              updateField('K7','value',eat10Total.toString());
+              setShowEat10(false);
+            }}
+              className="w-full py-4 bg-teal-600 text-white rounded-2xl font-bold text-lg">
+              回答を完了する
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -1071,9 +1152,19 @@ function KaikaAssessmentForm({ patient, existingAssessment, onSave, onCancel }) 
                     <button onClick={() => updateField('K7','subtype','rsst')}
                       className={`flex-1 py-2 rounded-lg text-sm font-medium ${d.subtype==='rsst' ? 'bg-teal-500 text-white' : 'bg-gray-100 text-gray-600'}`}>RSST</button>
                   </div>
-                  <input type="number" value={d.value} onChange={e => updateField('K7','value',e.target.value)}
-                    className="w-full px-3 py-3 bg-gray-50 border border-gray-200 rounded-xl text-base"
-                    placeholder={d.subtype==='eat10' ? 'EAT-10スコア（点）' : 'RSST回数（回/30秒）'}/>
+                  {d.subtype === 'eat10' ? (
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm text-gray-700">合計: <span className="font-bold text-lg">{d.value || '0'}</span>/40点</span>
+                        <button onClick={()=>setShowEat10(true)}
+                          className="bg-teal-500 text-white px-4 py-2 rounded-xl text-sm font-medium">患者に入力してもらう</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <input type="number" value={d.value} onChange={e => updateField('K7','value',e.target.value)}
+                      className="w-full px-3 py-3 bg-gray-50 border border-gray-200 rounded-xl text-base"
+                      placeholder="RSST回数（回/30秒）"/>
+                  )}
                 </div>
               )}
             </div>
