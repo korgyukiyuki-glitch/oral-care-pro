@@ -11,6 +11,7 @@
 <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <style>
@@ -128,7 +129,7 @@ const KAIKA_ITEMS = [
   { code:'K2', label:'口腔乾燥', method:'口腔水分計', criterion:'27未満で該当', unit:'' },
   { code:'K3', label:'咬合力低下', method:'残存歯数/デンタルプレスケール', criterion:'20本未満 or 200N未満', unit:'' },
   { code:'K4', label:'舌口唇運動機能低下', method:'オーラルディアドコキネシス', criterion:'pa/ta/kaいずれか6回/秒未満', unit:'回/秒' },
-  { code:'K5', label:'低舌圧', method:'舌圧測定器', criterion:'30kPa未満で該当', unit:'kPa' },
+  { code:'K5', label:'低舌圧', method:'舌圧測定器', criterion:'20kPa未満で該当', unit:'kPa' },
   { code:'K6', label:'咀嚼機能低下', method:'グルコース測定', criterion:'100mg/dl未満で該当', unit:'mg/dl' },
   { code:'K7', label:'嚥下機能低下', method:'EAT-10/RSST', criterion:'EAT-10: 3点以上で該当', unit:'点' },
 ];
@@ -904,12 +905,133 @@ function LongPressButton({ onAction, className, children, label }) {
 }
 
 // --- Kaika Assessment Form ---
+// --- ODK Timer Component ---
+function OdkTimer({ sound, onComplete, label }) {
+  const [phase, setPhase] = useState('idle'); // idle, running, done
+  const [timeLeft, setTimeLeft] = useState(10);
+  const [count, setCount] = useState(0);
+  const timerIdRef = useRef(null);
+  const startTimeRef = useRef(null);
+  const countRef = useRef(0);
+
+  useEffect(() => { return () => { if (timerIdRef.current) clearInterval(timerIdRef.current); }; }, []);
+
+  const playBeep = () => {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.value = 880;
+      gain.gain.value = 0.3;
+      osc.start();
+      osc.stop(ctx.currentTime + 0.3);
+    } catch(e) {}
+  };
+
+  const startTimer = () => {
+    setPhase('running');
+    setCount(0);
+    countRef.current = 0;
+    setTimeLeft(10);
+    startTimeRef.current = Date.now();
+    timerIdRef.current = setInterval(() => {
+      const elapsed = (Date.now() - startTimeRef.current) / 1000;
+      const remaining = Math.max(0, 10 - elapsed);
+      setTimeLeft(remaining);
+      if (remaining <= 0) {
+        clearInterval(timerIdRef.current);
+        timerIdRef.current = null;
+        setPhase('done');
+        playBeep();
+        onComplete(countRef.current);
+      }
+    }, 50);
+  };
+
+  const handleCount = () => {
+    if (phase === 'running') {
+      countRef.current += 1;
+      setCount(countRef.current);
+    }
+  };
+
+  const reset = () => {
+    if (timerIdRef.current) clearInterval(timerIdRef.current);
+    setPhase('idle');
+    setTimeLeft(10);
+    setCount(0);
+    countRef.current = 0;
+  };
+
+  return (
+    <div className="bg-gray-50 rounded-xl p-3 text-center">
+      <div className="text-xs font-bold text-gray-500 mb-2">{label}</div>
+      {phase === 'idle' && (
+        <button onClick={startTimer} className="bg-teal-500 text-white px-6 py-3 rounded-xl font-bold text-sm active:bg-teal-600">
+          {label} タイマー開始
+        </button>
+      )}
+      {phase === 'running' && (
+        <div>
+          <div className="text-3xl font-bold text-teal-600 mb-2">{timeLeft.toFixed(1)}秒</div>
+          <div className="w-full bg-gray-200 rounded-full h-2 mb-3">
+            <div className="bg-teal-500 h-2 rounded-full transition-all" style={{width:`${(10-timeLeft)/10*100}%`}}/>
+          </div>
+          <button onClick={handleCount}
+            className="w-full py-6 bg-teal-600 text-white rounded-2xl font-bold text-2xl active:bg-teal-700 select-none"
+            style={{WebkitUserSelect:'none',userSelect:'none'}}>
+            +1（{count}回）
+          </button>
+        </div>
+      )}
+      {phase === 'done' && (
+        <div>
+          <div className="text-sm text-gray-600 mb-1">結果</div>
+          <div className="text-2xl font-bold text-teal-600">{count}回 = {(count/10).toFixed(1)}回/秒</div>
+          <button onClick={reset} className="mt-2 text-xs text-gray-400 underline">やり直す</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// --- Kaika Radar Chart ---
+function KaikaRadarChart({ items }) {
+  const { RadarChart, PolarGrid, PolarAngleAxis, Radar, ResponsiveContainer } = Recharts;
+  const chartData = [
+    { name: 'K1\n口腔衛生', value: items.K1.positive ? 1 : 0 },
+    { name: 'K2\n口腔乾燥', value: items.K2.positive ? 1 : 0 },
+    { name: 'K3\n咬合力', value: items.K3.positive ? 1 : 0 },
+    { name: 'K4\n舌口唇運動', value: items.K4.positive ? 1 : 0 },
+    { name: 'K5\n舌圧', value: items.K5.positive ? 1 : 0 },
+    { name: 'K6\n咀嚼機能', value: items.K6.positive ? 1 : 0 },
+    { name: 'K7\n嚥下機能', value: items.K7.positive ? 1 : 0 },
+  ];
+  return (
+    <div className="bg-white rounded-2xl card-shadow p-4 mb-4">
+      <div className="text-sm font-bold text-gray-700 mb-2 text-center">口腔機能レーダーチャート</div>
+      <div style={{width:'100%',height:280}}>
+        <ResponsiveContainer>
+          <RadarChart data={chartData} cx="50%" cy="50%" outerRadius="70%">
+            <PolarGrid stroke="#e5e7eb"/>
+            <PolarAngleAxis dataKey="name" tick={{fontSize:10,fill:'#374151'}} />
+            <Radar dataKey="value" stroke="#0d9488" fill="#14b8a6" fillOpacity={0.3} strokeWidth={2} dot={{r:4,fill:'#0d9488'}}/>
+          </RadarChart>
+        </ResponsiveContainer>
+      </div>
+      <div className="text-xs text-gray-400 text-center mt-1">外側(1)=該当 / 中心(0)=非該当</div>
+    </div>
+  );
+}
+
 function KaikaAssessmentForm({ patient, existingAssessment, onSave, onCancel }) {
   const initItems = existingAssessment ? existingAssessment.kaikaItems : {
     K1: { value: '', tongueScores: [0,0,0,0,0,0,0,0,0], positive: false },
     K2: { value: '', positive: false },
     K3: { value: '', subtype: 'teeth', positive: false },
-    K4: { pa: '', ta: '', ka: '', positive: false },
+    K4: { pa: '', ta: '', ka: '', paCount: '', taCount: '', kaCount: '', positive: false },
     K5: { value: '', positive: false },
     K6: { value: '', positive: false },
     K7: { value: '', subtype: 'eat10', eat10answers: [0,0,0,0,0,0,0,0,0,0], positive: false }
@@ -934,8 +1056,16 @@ function KaikaAssessmentForm({ patient, existingAssessment, onSave, onCancel }) 
       }
       else if (code === 'K2') pos = item.value !== '' && parseFloat(item.value) < 27;
       else if (code === 'K3') pos = item.subtype === 'teeth' ? (item.value !== '' && parseFloat(item.value) < 20) : (item.value !== '' && parseFloat(item.value) < 200);
-      else if (code === 'K4') pos = [item.pa, item.ta, item.ka].some(v => v !== '' && parseFloat(v) < 6);
-      else if (code === 'K5') pos = item.value !== '' && parseFloat(item.value) < 30;
+      else if (code === 'K4') {
+        const paRate = item.paCount !== '' ? parseFloat(item.paCount) / 10 : (item.pa !== '' ? parseFloat(item.pa) : NaN);
+        const taRate = item.taCount !== '' ? parseFloat(item.taCount) / 10 : (item.ta !== '' ? parseFloat(item.ta) : NaN);
+        const kaRate = item.kaCount !== '' ? parseFloat(item.kaCount) / 10 : (item.ka !== '' ? parseFloat(item.ka) : NaN);
+        if (item.paCount !== '') updated[code] = {...updated[code], pa: (parseFloat(item.paCount)/10).toFixed(1)};
+        if (item.taCount !== '') updated[code] = {...updated[code], ta: (parseFloat(item.taCount)/10).toFixed(1)};
+        if (item.kaCount !== '') updated[code] = {...updated[code], ka: (parseFloat(item.kaCount)/10).toFixed(1)};
+        pos = [paRate, taRate, kaRate].some(v => !isNaN(v) && v < 6);
+      }
+      else if (code === 'K5') pos = item.value !== '' && parseFloat(item.value) < 20;
       else if (code === 'K6') pos = item.value !== '' && parseFloat(item.value) < 100;
       else if (code === 'K7') {
         if (item.subtype === 'eat10' && item.eat10answers) {
@@ -968,6 +1098,19 @@ function KaikaAssessmentForm({ patient, existingAssessment, onSave, onCancel }) 
       notes: notes,
       plans: existingAssessment ? (existingAssessment.plans || {}) : {}
     });
+  };
+
+  // 判定結果バッジ
+  const JudgeBadge = ({ value, threshold, unit, positive, reverse }) => {
+    if (value === '' || value === undefined) return null;
+    const v = parseFloat(value);
+    if (isNaN(v)) return null;
+    return (
+      <div className={`mt-2 flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium ${positive ? 'bg-red-50 text-red-600 border border-red-200' : 'bg-green-50 text-green-600 border border-green-200'}`}>
+        <span>測定値: {value}{unit}</span>
+        <span className="font-bold">{positive ? '該当' : '非該当'}</span>
+      </div>
+    );
   };
 
   const EAT10_QUESTIONS = [
@@ -1061,6 +1204,9 @@ function KaikaAssessmentForm({ patient, existingAssessment, onSave, onCancel }) 
           {isKaika ? ' → 口腔機能低下症に該当' : ' （3項目以上で該当）'}
         </div>
 
+        {/* レーダーチャート */}
+        <KaikaRadarChart items={items}/>
+
         {KAIKA_ITEMS.map((ki) => {
           const d = items[ki.code];
           return (
@@ -1070,7 +1216,11 @@ function KaikaAssessmentForm({ patient, existingAssessment, onSave, onCancel }) 
                   <span className="inline-block bg-gray-100 text-gray-600 text-xs font-bold px-2 py-1 rounded">{ki.code}</span>
                   <span className="font-bold text-sm text-gray-800">{ki.label}</span>
                 </div>
-                {d.positive && <span className="text-teal-600 font-bold text-xs bg-teal-50 px-2 py-1 rounded">該当</span>}
+                {d.positive !== undefined && d.value !== '' && d.value !== undefined && (
+                  <span className={`font-bold text-xs px-2 py-1 rounded ${d.positive ? 'text-red-600 bg-red-50' : 'text-green-600 bg-green-50'}`}>
+                    {d.positive ? '該当' : '非該当'}
+                  </span>
+                )}
               </div>
               <div className="text-xs text-gray-400 mb-2">{ki.method} — {ki.criterion}</div>
 
@@ -1118,42 +1268,97 @@ function KaikaAssessmentForm({ patient, existingAssessment, onSave, onCancel }) 
                   </div>
                 </div>
               )}
+
               {ki.code === 'K2' && (
-                <input type="number" step="0.1" value={d.value} onChange={e => updateField('K2','value',e.target.value)}
-                  className="w-full px-3 py-3 bg-gray-50 border border-gray-200 rounded-xl text-base" placeholder="口腔水分計の値"/>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <input type="number" step="0.1" value={d.value} onChange={e => updateField('K2','value',e.target.value)}
+                      className="flex-1 px-3 py-3 bg-gray-50 border border-gray-200 rounded-xl text-base" placeholder="測定値を入力"/>
+                    <span className="text-sm text-gray-500 whitespace-nowrap">(基準: 27.0未満)</span>
+                  </div>
+                  <JudgeBadge value={d.value} threshold={27} unit="" positive={d.positive}/>
+                </div>
               )}
+
               {ki.code === 'K3' && (
                 <div>
                   <div className="flex gap-2 mb-2">
                     <button onClick={() => updateField('K3','subtype','teeth')}
                       className={`flex-1 py-2 rounded-lg text-sm font-medium ${d.subtype==='teeth' ? 'bg-teal-500 text-white' : 'bg-gray-100 text-gray-600'}`}>残存歯数</button>
                     <button onClick={() => updateField('K3','subtype','pressure')}
-                      className={`flex-1 py-2 rounded-lg text-sm font-medium ${d.subtype==='pressure' ? 'bg-teal-500 text-white' : 'bg-gray-100 text-gray-600'}`}>咬合圧(N)</button>
+                      className={`flex-1 py-2 rounded-lg text-sm font-medium ${d.subtype==='pressure' ? 'bg-teal-500 text-white' : 'bg-gray-100 text-gray-600'}`}>咬合力(N)</button>
                   </div>
-                  <input type="number" value={d.value} onChange={e => updateField('K3','value',e.target.value)}
-                    className="w-full px-3 py-3 bg-gray-50 border border-gray-200 rounded-xl text-base"
-                    placeholder={d.subtype==='teeth' ? '残存歯数（本）' : '咬合力（N）'}/>
+                  <div className="flex items-center gap-2">
+                    <input type="number" value={d.value} onChange={e => updateField('K3','value',e.target.value)}
+                      className="flex-1 px-3 py-3 bg-gray-50 border border-gray-200 rounded-xl text-base"
+                      placeholder={d.subtype==='teeth' ? '残存歯数（本）' : '咬合力（N）'}/>
+                    <span className="text-sm text-gray-500 whitespace-nowrap">
+                      (基準: {d.subtype==='teeth' ? '20本未満' : '200N未満'})
+                    </span>
+                  </div>
+                  <JudgeBadge value={d.value} unit={d.subtype==='teeth' ? '本' : 'N'} positive={d.positive}/>
                 </div>
               )}
+
               {ki.code === 'K4' && (
-                <div className="flex gap-2">
-                  {['pa','ta','ka'].map(s => (
-                    <div key={s} className="flex-1">
-                      <label className="text-xs text-gray-500 mb-1 block text-center">{s}</label>
-                      <input type="number" step="0.1" value={d[s]} onChange={e => updateField('K4',s,e.target.value)}
-                        className="w-full px-2 py-3 bg-gray-50 border border-gray-200 rounded-xl text-base text-center" placeholder="回/秒"/>
+                <div>
+                  <div className="text-xs text-gray-500 mb-2">10秒間の回数を入力（または下のタイマーで計測）</div>
+                  <div className="grid grid-cols-3 gap-2 mb-3">
+                    {['pa','ta','ka'].map(s => {
+                      const countKey = s + 'Count';
+                      const rate = d[countKey] !== '' && d[countKey] !== undefined ? (parseFloat(d[countKey])/10).toFixed(1) : (d[s] || '-');
+                      const isLow = d[countKey] !== '' && d[countKey] !== undefined ? parseFloat(d[countKey])/10 < 6 : (d[s] !== '' && d[s] !== undefined ? parseFloat(d[s]) < 6 : false);
+                      return (
+                        <div key={s} className="text-center">
+                          <label className="text-xs font-bold text-gray-600 mb-1 block">/{s}/</label>
+                          <input type="number" value={d[countKey] || ''} onChange={e => updateField('K4',countKey,e.target.value)}
+                            className="w-full px-2 py-3 bg-gray-50 border border-gray-200 rounded-xl text-base text-center" placeholder="回数"/>
+                          <div className={`text-xs mt-1 font-medium ${isLow ? 'text-red-500' : 'text-green-600'}`}>
+                            {rate !== '-' ? `${rate}回/秒` : '-'}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {d.positive !== undefined && (d.paCount !== '' || d.taCount !== '' || d.kaCount !== '' || d.pa !== '' || d.ta !== '' || d.ka !== '') && (
+                    <div className={`mb-3 flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium ${d.positive ? 'bg-red-50 text-red-600 border border-red-200' : 'bg-green-50 text-green-600 border border-green-200'}`}>
+                      <span>pa:{d.pa || '-'} ta:{d.ta || '-'} ka:{d.ka || '-'} 回/秒</span>
+                      <span className="font-bold">{d.positive ? '該当' : '非該当'}</span>
                     </div>
-                  ))}
+                  )}
+                  <div className="text-xs font-bold text-gray-500 mb-2">タイマーで計測</div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {['pa','ta','ka'].map(s => (
+                      <OdkTimer key={s} label={`/${s}/`} onComplete={(cnt) => {
+                        updateField('K4', s+'Count', cnt.toString());
+                      }}/>
+                    ))}
+                  </div>
                 </div>
               )}
+
               {ki.code === 'K5' && (
-                <input type="number" step="0.1" value={d.value} onChange={e => updateField('K5','value',e.target.value)}
-                  className="w-full px-3 py-3 bg-gray-50 border border-gray-200 rounded-xl text-base" placeholder="舌圧（kPa）"/>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <input type="number" step="0.1" value={d.value} onChange={e => updateField('K5','value',e.target.value)}
+                      className="flex-1 px-3 py-3 bg-gray-50 border border-gray-200 rounded-xl text-base" placeholder="舌圧値を入力"/>
+                    <span className="text-sm text-gray-500 whitespace-nowrap">kPa (基準: 20未満)</span>
+                  </div>
+                  <JudgeBadge value={d.value} unit="kPa" positive={d.positive}/>
+                </div>
               )}
+
               {ki.code === 'K6' && (
-                <input type="number" value={d.value} onChange={e => updateField('K6','value',e.target.value)}
-                  className="w-full px-3 py-3 bg-gray-50 border border-gray-200 rounded-xl text-base" placeholder="グルコース濃度（mg/dl）"/>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <input type="number" value={d.value} onChange={e => updateField('K6','value',e.target.value)}
+                      className="flex-1 px-3 py-3 bg-gray-50 border border-gray-200 rounded-xl text-base" placeholder="グルコース濃度を入力"/>
+                    <span className="text-sm text-gray-500 whitespace-nowrap">mg/dL (基準: 100未満)</span>
+                  </div>
+                  <JudgeBadge value={d.value} unit="mg/dL" positive={d.positive}/>
+                </div>
               )}
+
               {ki.code === 'K7' && (
                 <div>
                   <div className="flex gap-2 mb-2">
