@@ -568,12 +568,12 @@ function PatientList({ patients, assessments, onSelect, onAdd, onRestore, onHome
           const age = calcAge(p.birthDate);
           const asmts = assessments.filter(a => a.patientId === p.id);
           const lastAsmt = asmts.length > 0 ? asmts[asmts.length-1] : null;
-          const checkedCount = lastAsmt ? (lastAsmt.checks ? Object.entries(lastAsmt.checks).filter(([k,v]) => {
+          const checkedCount = lastAsmt ? (lastAsmt.kaikaItems ? Object.values(lastAsmt.kaikaItems).filter(i => i.positive).length : (lastAsmt.checks ? Object.entries(lastAsmt.checks).filter(([k,v]) => {
             if (k === 'C11') return v && v.length > 0;
             if (k === 'C13') return v === 'underweight' || v === 'overweight';
             if (k === 'C17') return v && v.length > 0;
             return v === true;
-          }).length : (lastAsmt.items ? Object.values(lastAsmt.items).filter(i => i.positive).length : 0)) : 0;
+          }).length : (lastAsmt.items ? Object.values(lastAsmt.items).filter(i => i.positive).length : 0))) : 0;
           return (
             <button key={p.id} onClick={()=>onSelect(p)} className="w-full text-left bg-white rounded-2xl p-4 mb-3 card-shadow active:bg-gray-50 transition">
               <div className="flex justify-between items-start">
@@ -1737,12 +1737,12 @@ function PatientDetail({ patient, assessments, onBack, onEdit, onNewAssessment, 
         {patientAssessments.length === 0 ? (
           <div className="bg-white rounded-2xl card-shadow p-8 text-center text-gray-400 text-sm">まだ評価記録がありません</div>
         ) : patientAssessments.map(a => {
-          const checkedCount = a.checks ? Object.entries(a.checks).filter(([k,v])=>{
+          const checkedCount = a.kaikaItems ? Object.values(a.kaikaItems).filter(i => i.positive).length : (a.checks ? Object.entries(a.checks).filter(([k,v])=>{
             if(k==='C11') return v&&v.length>0;
             if(k==='C13') return v==='underweight'||v==='overweight';
             if(k==='C17') return v&&v.length>0;
             return v===true;
-          }).length : (a.items ? Object.values(a.items).filter(i => i.positive).length : 0);
+          }).length : (a.items ? Object.values(a.items).filter(i => i.positive).length : 0));
           return (
             <div key={a.id} className="flex items-center gap-2 mb-3">
               <button onClick={()=>onSelectAssessment(a)} className="flex-1 text-left bg-white rounded-2xl p-4 card-shadow active:bg-gray-50 transition">
