@@ -971,16 +971,26 @@ function KaikaAssessmentForm({ patient, existingAssessment, onSave, onCancel }) 
   };
 
   const EAT10_QUESTIONS = [
-    '飲み込みの問題のせいで、体重が減少してきた',
-    '飲み込みの問題が、外食に行くための障害になっている',
-    '液体を飲み込む時に、余分な努力が必要だ',
-    '固形物を飲み込む時に、余分な努力が必要だ',
-    '錠剤を飲み込む時に、余分な努力が必要だ',
-    '飲み込むことが苦痛だ',
-    '食べる喜びが飲み込みの問題に影響されている',
-    '飲み込む時に食べ物がのどに引っかかる',
-    '食べる時に咳が出る',
-    '飲み込むことはストレスが多い'
+    { q: 'この3ヵ月の間に、飲み込みの問題が原因で、体重が減少しましたか？',
+      labels: ['体重は\n減少して\nいない','よく\nわからない','0〜1kg\n減少','1〜3kg\n減少','3kg以上\n減少'] },
+    { q: 'この3ヵ月の間に、飲み込みの問題が原因で、自宅や病院／施設での食事以外は食べたくないと思ったことはありますか？',
+      labels: ['全くそう\n思わな\nかった','めったに\nそう思わ\nなかった','ときどき\nそう思った','よくそう\n思った','いつもそう\n思った'] },
+    { q: '液体（水、お茶、ジュースなど）を飲み込む時に、余分な努力が必要ですか？',
+      labels: ['全くそうは\n感じない','めったに\nそうは\n感じない','ときどき\nそう感じる','よくそう\n感じる','いつもそう\n感じる'] },
+    { q: '固形物（ごはん、パン、肉など）を飲み込む時に、余分な努力が必要ですか？',
+      labels: ['全くそうは\n感じない','めったに\nそうは\n感じない','ときどき\nそう感じる','よくそう\n感じる','いつもそう\n感じる'] },
+    { q: '錠剤（くすり）を飲み込む時に、余分な努力が必要ですか？',
+      labels: ['全くそうは\n感じない','めったに\nそうは\n感じない','ときどき\nそう感じる','よくそう\n感じる','いつもそう\n感じる'] },
+    { q: '飲み込むことが苦痛に感じますか？',
+      labels: ['全くそうは\n感じない','めったに\nそうは\n感じない','ときどき\nそう感じる','よくそう\n感じる','いつもそう\n感じる'] },
+    { q: '食べる楽しみが、飲み込みの問題によって影響を受けていますか？',
+      labels: ['全く影響\nされて\nいない','めったに\n影響\nされない','ときどき\n影響\nされる','よく影響\nされる','いつも\n影響\nされる'] },
+    { q: '飲み込む時に、食べ物がのどに引っかかる感じがしますか？',
+      labels: ['全くそうは\n感じない','めったに\nそうは\n感じない','ときどき\nそう感じる','よくそう\n感じる','いつもそう\n感じる'] },
+    { q: '食べる時に咳が出ますか？',
+      labels: ['全く\n出ない','めったに\n出ない','ときどき\n出る','よく出る','いつも\n出る'] },
+    { q: '飲み込むことがストレスに感じますか？',
+      labels: ['全くそうは\n感じない','めったに\nそうは\n感じない','ときどき\nそう感じる','よくそう\n感じる','いつもそう\n感じる'] }
   ];
 
   const eat10answers = items.K7.eat10answers || [0,0,0,0,0,0,0,0,0,0];
@@ -994,13 +1004,11 @@ function KaikaAssessmentForm({ patient, existingAssessment, onSave, onCancel }) 
           <div className="text-sm opacity-90">それぞれの質問について、あてはまる程度を選んでください</div>
         </div>
         <div className="p-4 max-w-lg mx-auto">
-          <div className="flex justify-between text-xs text-gray-500 mb-2 px-1">
-            <span>0: 問題なし</span><span>4: ひどく問題</span>
-          </div>
-          {EAT10_QUESTIONS.map((q, qi) => (
+          {EAT10_QUESTIONS.map((q, qi) => {
+            return (
             <div key={qi} className="mb-4 bg-gray-50 rounded-2xl p-4">
-              <div className="text-sm font-medium text-gray-800 mb-3">
-                <span className="text-teal-600 font-bold mr-1">{qi+1}.</span>{q}
+              <div className="text-base font-medium text-gray-800 mb-3">
+                <span className="text-teal-600 font-bold mr-1">{qi+1}.</span>{q.q}
               </div>
               <div className="flex gap-2">
                 {[0,1,2,3,4].map(score => (
@@ -1009,17 +1017,19 @@ function KaikaAssessmentForm({ patient, existingAssessment, onSave, onCancel }) 
                     newAnswers[qi] = score;
                     updateField('K7','eat10answers',newAnswers);
                   }}
-                    className={`flex-1 py-3 rounded-xl text-lg font-bold transition ${
+                    className={`flex-1 py-2 rounded-xl transition flex flex-col items-center ${
                       eat10answers[qi] === score
                         ? 'bg-teal-500 text-white shadow-md'
                         : 'bg-white text-gray-600 border border-gray-200'
                     }`}>
-                    {score}
+                    <span className="text-lg font-bold">{score}</span>
+                    <span className="text-[10px] leading-tight whitespace-pre-wrap">{q.labels[score]}</span>
                   </button>
                 ))}
               </div>
             </div>
-          ))}
+            );
+          })}
           <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4 -mx-4">
             <div className="text-center mb-3">
               <span className="text-lg text-gray-600">合計スコア: </span>
