@@ -143,6 +143,24 @@ const PLAN_TEMPLATES_KAIKA = {
   K7: { problem:'嚥下機能が低下し、誤嚥のリスクが高まっています。', plan:'嚥下訓練と食事姿勢の指導を行います。' },
 };
 
+// ==================== 小児スクリーニング基準値 ====================
+const TONGUE_PRESSURE_CUTOFF = { 4:4.0, 5:9.0, 6:12.0, 7:17.0, 8:24.0, 9:24.0, 10:26.0, 11:26.0, 12:31.0 };
+const LIP_FORCE_1SD = {
+  M: { 3:2.1, 4:3.0, 5:4.1, 6:5.5, 7:6.6, 8:6.5, 9:6.0, 10:5.7, 11:5.8, 12:6.9, 13:6.9, 14:6.9, 15:10.5, 16:10.5, 17:10.5, 18:11.6 },
+  F: { 3:1.9, 4:2.8, 5:3.8, 6:4.6, 7:5.1, 8:5.0, 9:4.7, 10:4.6, 11:5.3, 12:6.1, 13:6.1, 14:6.1, 15:9.6, 16:9.6, 17:9.6, 18:10.6 }
+};
+function getLipThreshold(age, sex) {
+  const table = LIP_FORCE_1SD[sex] || LIP_FORCE_1SD.M;
+  if (age <= 3) return table[3];
+  if (age >= 18) return table[18];
+  return table[age] || table[Math.min(age, 18)];
+}
+function getTongueThreshold(age) {
+  if (age <= 4) return TONGUE_PRESSURE_CUTOFF[4];
+  if (age >= 12) return TONGUE_PRESSURE_CUTOFF[12];
+  return TONGUE_PRESSURE_CUTOFF[age] || TONGUE_PRESSURE_CUTOFF[Math.min(age, 12)];
+}
+
 // ==================== UTILITIES ====================
 function generateId() { return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 
@@ -673,8 +691,8 @@ function AssessmentForm({ patient, existingAssessment, onSave, onCancel }) {
     C1:false,C2:false,C3:false,C4:false,C5:false,C6:false,C7:false,C8:false,
     C9:false,C10:false,C11:[],C11_has:existingAssessment?.checks?.C11?.length > 0 ? true : null,C12:false,C13:bodyStatus,C13_patient:null,C14:false,C15:false,C16:false,C17:''
   });
-  const [lipForce, setLipForce] = useState(existingAssessment?.lipForce || '');
-  const [tonguePressure, setTonguePressure] = useState(existingAssessment?.tonguePressure || '');
+  const [lipForce, setLipForce] = useState(existingAssessment?.lipForce || patient.screening?.lipForce || '');
+  const [tonguePressure, setTonguePressure] = useState(existingAssessment?.tonguePressure || patient.screening?.tonguePressure || '');
   const [patientMode, setPatientMode] = useState(false);
   const [holdProgress, setHoldProgress] = useState(0);
   const holdTimerRef = useRef(null);
@@ -2420,6 +2438,148 @@ function ReferralLetter({ patient, assessment, onClose, mode }) {
   );
 }
 
+// --- Screening Test (発達不全症スクリーニング) ---
+function ScreeningTest({ patient, onBack, onSave, onGoAssessment }) {
+  const age = calcAge(patient.birthDate);
+  const sex = patient.sex || 'M';
+  const existing = patient.screening || {};
+
+  const [lipForce, setLipForce] = useState(existing.lipForce || '');
+  const [tonguePressure, setTonguePressure] = useState(existing.tonguePressure || '');
+  const [saveMsg, setSaveMsg] = useState(false);
+
+  const lipThreshold = getLipThreshold(age, sex);
+  const tongueThreshold = getTongueThreshold(age);
+
+  const lipVal = lipForce !== '' ? parseFloat(lipForce) : null;
+  const tongueVal = tonguePressure !== '' ? parseFloat(tonguePressure) : null;
+  const lipPositive = lipVal !== null && !isNaN(lipVal) && lipVal < lipThreshold;
+  const tonguePositive = tongueVal !== null && !isNaN(tongueVal) && tongueVal < tongueThreshold;
+  const anyPositive = lipPositive || tonguePositive;
+  const hasInput = lipVal !== null || tongueVal !== null;
+
+  const handleSave = () => {
+    const screening = {
+      date: new Date().toISOString().split('T')[0],
+      lipForce, tonguePressure,
+      lipPositive, tonguePositive
+    };
+    onSave(screening);
+    setSaveMsg(true);
+    setTimeout(() => setSaveMsg(false), 2000);
+  };
+
+  const handleGoAssessment = () => {
+    handleSave();
+    onGoAssessment(lipForce, tonguePressure);
+  };
+
+  const sexLabel = sex === 'M' ? '男児' : '女児';
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Header title="スクリーニング検査" onBack={onBack} rightAction={
+        <button onClick={handleSave} className="toggle-btn bg-primary-600 text-white px-4 py-2 rounded-xl font-medium text-sm">保存</button>
+      }/>
+      {saveMsg && (
+        <div className="fixed top-16 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-6 py-3 rounded-2xl shadow-lg z-50 text-sm font-medium animate-pulse">保存しました</div>
+      )}
+      <div className="p-4 max-w-2xl mx-auto">
+        {/* Patient Info */}
+        <div className="bg-white rounded-2xl card-shadow p-3 mb-4 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-lg">{patient.name?.charAt(0)}</div>
+          <div>
+            <div className="font-bold text-gray-800">{patient.name}</div>
+            <div className="text-xs text-gray-500">{age !== null ? `${age}歳` : ''} {sexLabel}</div>
+          </div>
+        </div>
+
+        {/* 口唇閉鎖力 */}
+        <div className="bg-white rounded-2xl card-shadow mb-4 overflow-hidden">
+          <div className="bg-blue-600 text-white px-4 py-2 text-sm font-bold flex justify-between items-center">
+            <span>口唇閉鎖力検査</span>
+            <span className="text-xs font-normal opacity-80">りっぷるくん等</span>
+          </div>
+          <div className="p-4">
+            <div className="flex items-center gap-3 mb-3">
+              <input type="number" step="0.1" value={lipForce} onChange={e=>setLipForce(e.target.value)}
+                className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-lg text-center font-bold" placeholder="測定値"/>
+              <span className="text-gray-500 font-medium text-lg">N</span>
+            </div>
+            <div className="text-xs text-gray-400 mb-2">
+              基準値（-1SD）: <span className="font-bold text-gray-600">{lipThreshold} N</span>
+              <span className="text-gray-400 ml-1">（{age}歳{sexLabel}）</span>
+            </div>
+            {lipVal !== null && !isNaN(lipVal) && (
+              <div className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium ${
+                lipPositive ? 'bg-red-50 text-red-600 border border-red-200' : 'bg-green-50 text-green-600 border border-green-200'
+              }`}>
+                <span>測定値: {lipForce} N（基準: {lipThreshold} N）</span>
+                <span className="font-bold">{lipPositive ? '基準値未満' : '基準値以上'}</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* 舌圧 */}
+        <div className="bg-white rounded-2xl card-shadow mb-4 overflow-hidden">
+          <div className="bg-purple-600 text-white px-4 py-2 text-sm font-bold flex justify-between items-center">
+            <span>舌圧検査</span>
+            <span className="text-xs font-normal opacity-80">JMS舌圧測定器</span>
+          </div>
+          <div className="p-4">
+            <div className="flex items-center gap-3 mb-3">
+              <input type="number" step="0.1" value={tonguePressure} onChange={e=>setTonguePressure(e.target.value)}
+                className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-lg text-center font-bold" placeholder="測定値"/>
+              <span className="text-gray-500 font-medium text-lg">kPa</span>
+            </div>
+            <div className="text-xs text-gray-400 mb-2">
+              基準値（cut-off）: <span className="font-bold text-gray-600">{tongueThreshold} kPa</span>
+              <span className="text-gray-400 ml-1">（{age}歳）</span>
+            </div>
+            {tongueVal !== null && !isNaN(tongueVal) && (
+              <div className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium ${
+                tonguePositive ? 'bg-red-50 text-red-600 border border-red-200' : 'bg-green-50 text-green-600 border border-green-200'
+              }`}>
+                <span>測定値: {tonguePressure} kPa（基準: {tongueThreshold} kPa）</span>
+                <span className="font-bold">{tonguePositive ? '基準値未満' : '基準値以上'}</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* 総合判定 */}
+        {hasInput && (
+          <div className={`rounded-2xl card-shadow p-5 mb-4 ${
+            anyPositive ? 'bg-red-50 border-2 border-red-300' : 'bg-green-50 border-2 border-green-300'
+          }`}>
+            <div className="text-center">
+              <div className={`text-lg font-black mb-1 ${anyPositive ? 'text-red-700' : 'text-green-700'}`}>
+                {anyPositive ? '口腔機能発達不全症の疑いあり' : '基準値以上（現時点で異常なし）'}
+              </div>
+              {anyPositive && (
+                <div className="text-sm text-red-600">
+                  {lipPositive && tonguePositive ? '口唇閉鎖力・舌圧ともに基準値未満' :
+                   lipPositive ? '口唇閉鎖力が基準値未満' : '舌圧が基準値未満'}
+                  → 口腔機能評価を実施してください
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Action Buttons */}
+        {anyPositive && (
+          <button onClick={handleGoAssessment}
+            className="w-full bg-red-600 text-white py-4 rounded-2xl font-bold text-base mb-3 active:bg-red-700 transition card-shadow">
+            → 口腔機能評価（C1-C17）へ進む
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // --- Billing Flow Chart ---
 function BillingFlowChart({ patient, assessments, mode, onBack }) {
   const [step, setStep] = useState(0);
@@ -2706,7 +2866,7 @@ function BillingFlowChart({ patient, assessments, mode, onBack }) {
 }
 
 // --- Patient Detail ---
-function PatientDetail({ patient, assessments, onBack, onEdit, onNewAssessment, onSelectAssessment, onDeleteAssessment, onBillingGuide, mode }) {
+function PatientDetail({ patient, assessments, onBack, onEdit, onNewAssessment, onSelectAssessment, onDeleteAssessment, onBillingGuide, onScreening, mode }) {
   const [deleteHold, setDeleteHold] = useState(null);
   const [deleteProgress, setDeleteProgress] = useState(0);
   const deleteTimerRef = useRef(null);
@@ -2756,6 +2916,12 @@ function PatientDetail({ patient, assessments, onBack, onEdit, onNewAssessment, 
         <button onClick={onNewAssessment} className="w-full bg-primary-600 text-white py-4 rounded-2xl font-bold text-base mb-3 active:bg-primary-700 transition card-shadow">
           ＋ 新しい評価を開始
         </button>
+
+        {mode === 'hattatsu' && (
+          <button onClick={onScreening} className="w-full bg-blue-500 text-white py-3 rounded-2xl font-bold text-base mb-3 active:bg-blue-600 transition card-shadow flex items-center justify-center gap-2">
+            <span>🔬</span> スクリーニング検査（口唇閉鎖力・舌圧）
+          </button>
+        )}
 
         <button onClick={onBillingGuide} className="w-full bg-amber-500 text-white py-3 rounded-2xl font-bold text-base mb-4 active:bg-amber-600 transition card-shadow flex items-center justify-center gap-2">
           <span>💰</span> 算定ガイド
@@ -2985,6 +3151,23 @@ function App() {
     return <BillingFlowChart patient={currentPatient} assessments={data.assessments} mode={mode} onBack={()=>setPage('detail')}/>;
   }
 
+  if (page === 'screening' && currentPatient) {
+    return <ScreeningTest patient={currentPatient}
+      onBack={()=>setPage('detail')}
+      onSave={(screening) => {
+        const updated = {...currentPatient, screening};
+        setCurrentPatient(updated);
+        setData(prev => ({...prev, patients: prev.patients.map(p => p.id === updated.id ? updated : p)}));
+        if (firebaseReady && db) savePatientToFirestore(updated);
+      }}
+      onGoAssessment={(lip, tongue) => {
+        const updated = {...currentPatient, screening: {...currentPatient.screening, lipForce: lip, tonguePressure: tongue}};
+        setCurrentPatient(updated);
+        setCurrentAssessment(null);
+        setPage('assessment');
+      }}/>;
+  }
+
   if (page === 'detail' && currentPatient) {
     return <PatientDetail patient={currentPatient} assessments={data.assessments}
       onBack={()=>setPage('list')}
@@ -2993,6 +3176,7 @@ function App() {
       onSelectAssessment={a=>{setCurrentAssessment(a);setPage('plan');}}
       onDeleteAssessment={deleteAssessment}
       onBillingGuide={()=>setPage('billing')}
+      onScreening={()=>setPage('screening')}
       mode={mode}/>;
   }
 
