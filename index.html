@@ -2655,9 +2655,26 @@ function BillingFlowChart({ patient, assessments, mode, onBack }) {
     ]
   };
 
+  const SCREENING_BILLING = {
+    hattatsu: [
+      { code: '小児口唇閉鎖力検査', points: 100, freq: '3月に1回', note: 'りっぷるくん等' },
+      { code: '舌圧検査', points: 140, freq: '3月に1回', note: 'JMS舌圧測定器' },
+    ],
+    kaika: [
+      { code: '舌圧検査', points: 140, freq: '3月に1回', note: '舌圧測定器' },
+    ],
+    warnings: {
+      hattatsu: ['スクリーニングのみの場合、管理料は算定できません', '基準値未満の場合 → 口腔機能評価（C1-C17）へ'],
+      kaika: ['スクリーニングのみの場合、管理料は算定できません'],
+    }
+  };
+
   const billing = mode === 'kaika' ? KAIKA_BILLING : HATTATSU_BILLING;
 
   const getApplicableItems = () => {
+    if (visitType === 'screening') {
+      return mode === 'kaika' ? SCREENING_BILLING.kaika : SCREENING_BILLING.hattatsu;
+    }
     let items = [];
     if (visitType === 'first' || visitType === 'reeval') {
       const examItems = visitType === 'first' ? billing.firstExam : billing.reeval;
@@ -2681,7 +2698,10 @@ function BillingFlowChart({ patient, assessments, mode, onBack }) {
   };
 
   const handleNext = () => {
-    if (step === 0 && visitType) setStep(1);
+    if (step === 0 && visitType) {
+      if (visitType === 'screening') { setShowResult(true); return; }
+      setStep(1);
+    }
     else if (step === 1 && hasKoukankyou !== null) setShowResult(true);
   };
   const handleStepBack = () => {
@@ -2731,6 +2751,7 @@ function BillingFlowChart({ patient, assessments, mode, onBack }) {
                 <h3 className="text-lg font-bold text-gray-800 mb-1">今日の来院目的は？</h3>
                 <p className="text-xs text-gray-400 mb-4">該当するものを選択してください</p>
                 {[
+                  { key: 'screening', label: 'スクリーニング検査のみ', desc: '口唇閉鎖力・舌圧の検査のみ実施', icon: '🔬' },
                   { key: 'first', label: '初回検査', desc: '初めて口腔機能の検査を行う', icon: '🔍' },
                   { key: 'reeval', label: '再評価', desc: '前回検査から3ヶ月以上経過', icon: '🔄' },
                   { key: 'monthly', label: '継続管理', desc: '毎月の管理・指導', icon: '📋' },
@@ -2793,8 +2814,8 @@ function BillingFlowChart({ patient, assessments, mode, onBack }) {
                 <h3 className="text-lg font-bold text-gray-800">今日の算定可能項目</h3>
               </div>
               <div className="text-xs text-gray-400 mb-3 flex gap-2 flex-wrap">
-                <span className="bg-gray-100 px-2 py-1 rounded">{visitType === 'first' ? '初回検査' : visitType === 'reeval' ? '再評価' : '継続管理'}</span>
-                <span className="bg-gray-100 px-2 py-1 rounded">口管強: {hasKoukankyou ? 'あり' : 'なし'}</span>
+                <span className="bg-gray-100 px-2 py-1 rounded">{visitType === 'screening' ? 'スクリーニング検査のみ' : visitType === 'first' ? '初回検査' : visitType === 'reeval' ? '再評価' : '継続管理'}</span>
+                {visitType !== 'screening' && <span className="bg-gray-100 px-2 py-1 rounded">口管強: {hasKoukankyou ? 'あり' : 'なし'}</span>}
               </div>
 
               {examItems.length > 0 && (
@@ -2818,7 +2839,7 @@ function BillingFlowChart({ patient, assessments, mode, onBack }) {
                 </div>
               )}
 
-              <div className="mb-4">
+              {mgmtItems.length > 0 && <div className="mb-4">
                 <div className="text-xs font-bold text-green-600 tracking-wider mb-2">管理・指導料</div>
                 {mgmtItems.map((item, idx) => (
                   <div key={idx} className="flex items-center justify-between py-2 px-3 bg-green-50 rounded-lg mb-1">
@@ -2835,7 +2856,7 @@ function BillingFlowChart({ patient, assessments, mode, onBack }) {
                     </div>
                   </div>
                 ))}
-              </div>
+              </div>}
 
               <div className="border-t-2 border-gray-100 pt-3 mt-3 flex justify-between items-center">
                 <div className="text-sm font-bold text-gray-600">合計（1回の来院で）</div>
@@ -2848,7 +2869,7 @@ function BillingFlowChart({ patient, assessments, mode, onBack }) {
                 <span>⚠️</span>
                 <h4 className="text-sm font-bold text-amber-800">注意事項</h4>
               </div>
-              {billing.warnings.map((w, i) => (
+              {(visitType === 'screening' ? SCREENING_BILLING.warnings[mode] : billing.warnings).map((w, i) => (
                 <div key={i} className="text-xs text-amber-700 py-1 flex items-start gap-1">
                   <span className="mt-0.5">・</span><span>{w}</span>
                 </div>
@@ -2882,6 +2903,7 @@ function BillingFlowChart({ patient, assessments, mode, onBack }) {
 
 // --- Patient Detail ---
 function PatientDetail({ patient, assessments, onBack, onEdit, onNewAssessment, onSelectAssessment, onDeleteAssessment, onBillingGuide, onScreening, mode }) {
+  const [showGraphs, setShowGraphs] = useState(false);
   const [deleteHold, setDeleteHold] = useState(null);
   const [deleteProgress, setDeleteProgress] = useState(0);
   const deleteTimerRef = useRef(null);
@@ -2943,9 +2965,21 @@ function PatientDetail({ patient, assessments, onBack, onEdit, onNewAssessment, 
         </button>
 
         {patientAssessments.length >= 2 && (
-          mode === 'kaika'
-            ? <KaikaProgressGraphs assessments={[...patientAssessments].reverse()} />
-            : <HattatsuProgressGraphs assessments={[...patientAssessments].reverse()} />
+          <div className="mb-4">
+            <button onClick={() => setShowGraphs(!showGraphs)}
+              className="w-full bg-white rounded-2xl card-shadow p-3 flex items-center justify-between active:bg-gray-50 transition">
+              <div className="flex items-center gap-2">
+                <span>📈</span>
+                <span className="text-sm font-bold text-gray-700">経過記録グラフ</span>
+              </div>
+              <span className={`text-gray-400 transition-transform ${showGraphs ? 'rotate-180' : ''}`}>▼</span>
+            </button>
+            {showGraphs && (
+              mode === 'kaika'
+                ? <KaikaProgressGraphs assessments={[...patientAssessments].reverse()} />
+                : <HattatsuProgressGraphs assessments={[...patientAssessments].reverse()} />
+            )}
+          </div>
         )}
 
         <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 px-1">評価履歴</h3>
