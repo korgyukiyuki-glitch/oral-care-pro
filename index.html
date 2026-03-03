@@ -1844,7 +1844,7 @@ function ManagementPlan({ patient, assessment, onSave, onBack, onPrint, onReferr
         <div className="flex gap-2">
           <LongPressButton onAction={handleSave} className={mode === 'kaika' ? "bg-teal-600 text-white px-4 py-2 rounded-xl font-medium text-sm" : "bg-primary-600 text-white px-4 py-2 rounded-xl font-medium text-sm"} label="保存"/>
           {saveMsg && <span className="text-green-600 text-xs font-medium self-center">保存済み</span>}
-          <button onClick={()=>{handleSave();onPrint();}} className="toggle-btn bg-dental-600 text-white px-4 py-2 rounded-xl font-medium text-sm">PDF出力</button>
+          <LongPressButton onAction={()=>{handleSave();onPrint();}} className="bg-dental-600 text-white px-4 py-2 rounded-xl font-medium text-sm" label="PDF出力"/>
           <button onClick={()=>{handleSave();onReferral();}} className="toggle-btn bg-amber-500 text-white px-3 py-2 rounded-xl font-medium text-xs">紹介状</button>
         </div>
       }/>
@@ -2273,7 +2273,7 @@ function ReferralLetter({ patient, assessment, onClose, mode }) {
       {/* Input Form - no-print */}
       <div className="no-print">
         <Header title="紹介状作成" onBack={onClose} rightAction={
-          <button onClick={handlePrint} className="toggle-btn bg-dental-600 text-white px-4 py-2 rounded-xl font-medium text-sm">印刷 / PDF</button>
+          <LongPressButton onAction={handlePrint} className="bg-dental-600 text-white px-4 py-2 rounded-xl font-medium text-sm" label="印刷 / PDF"/>
         }/>
         <div className="p-4 max-w-2xl mx-auto">
           <div className="bg-white rounded-2xl card-shadow p-4 mb-4">
