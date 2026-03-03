@@ -1747,7 +1747,7 @@ function KaikaAssessmentForm({ patient, existingAssessment, onSave, onCancel }) 
   );
 }
 
-function ManagementPlan({ patient, assessment, onSave, onBack, onPrint, mode }) {
+function ManagementPlan({ patient, assessment, onSave, onBack, onPrint, onReferral, mode }) {
   const [plans, setPlans] = useState(() => {
     if (mode === 'kaika') {
       const initial = {};
@@ -1814,6 +1814,7 @@ function ManagementPlan({ patient, assessment, onSave, onBack, onPrint, mode }) 
           <LongPressButton onAction={handleSave} className={mode === 'kaika' ? "bg-teal-600 text-white px-4 py-2 rounded-xl font-medium text-sm" : "bg-primary-600 text-white px-4 py-2 rounded-xl font-medium text-sm"} label="保存"/>
           {saveMsg && <span className="text-green-600 text-xs font-medium self-center">保存済み</span>}
           <button onClick={()=>{handleSave();onPrint();}} className="toggle-btn bg-dental-600 text-white px-4 py-2 rounded-xl font-medium text-sm">PDF出力</button>
+          <button onClick={()=>{handleSave();onReferral();}} className="toggle-btn bg-amber-500 text-white px-3 py-2 rounded-xl font-medium text-xs">紹介状</button>
         </div>
       }/>
       {saveMsg && (
@@ -2169,6 +2170,253 @@ function PrintView({ patient, assessment, onClose, mode }) {
         </div>
         </>
       )}
+    </div>
+  );
+}
+
+// --- Referral Letter (診療情報提供書) ---
+function ReferralLetter({ patient, assessment, onClose, mode }) {
+  const STORAGE_KEY = 'oralcare_referral_clinic';
+  const saved = useMemo(() => {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch { return {}; }
+  }, []);
+
+  const [destClinic, setDestClinic] = useState('');
+  const [destDoctor, setDestDoctor] = useState('');
+  const [srcClinic, setSrcClinic] = useState(saved.clinicName || '');
+  const [srcAddress, setSrcAddress] = useState(saved.clinicAddress || '');
+  const [srcPhone, setSrcPhone] = useState(saved.clinicPhone || '');
+  const [srcDoctor, setSrcDoctor] = useState(patient.doctor || '');
+  const [purpose, setPurpose] = useState('');
+  const [remarks, setRemarks] = useState('');
+
+  const saveSrcInfo = () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ clinicName: srcClinic, clinicAddress: srcAddress, clinicPhone: srcPhone }));
+  };
+
+  const age = calcAge(patient.birthDate);
+  const today = formatDate(new Date().toISOString().split('T')[0]);
+
+  const presets = mode === 'kaika' ? [
+    '口腔機能低下症の精査・加療をお願いいたします。',
+    '嚥下機能の精密検査をお願いいたします。',
+    '義歯作製・調整をお願いいたします。',
+    '摂食嚥下リハビリテーションをお願いいたします。',
+  ] : [
+    '口腔機能発達不全症の評価・指導をお願いいたします。',
+    '舌小帯の精査をお願いいたします。',
+    '耳鼻咽喉科的精査をお願いいたします。',
+    '矯正歯科的精査をお願いいたします。',
+  ];
+
+  // Kaika: build results summary
+  const getKaikaValue = (code) => {
+    const d = assessment.kaikaItems?.[code];
+    if (!d) return '-';
+    if (code === 'K4') {
+      const pa = d.pa ? (d.pa / 10).toFixed(1) : '-';
+      const ta = d.ta ? (d.ta / 10).toFixed(1) : '-';
+      const ka = d.ka ? (d.ka / 10).toFixed(1) : '-';
+      return `pa${pa} ta${ta} ka${ka}`;
+    }
+    if (code === 'K7' && d.subtype === 'rsst') return `RSST ${d.value || '-'}回/30秒`;
+    if (code === 'K7') return `EAT-10 ${d.value || '-'}点`;
+    if (code === 'K3' && d.subtype === 'teeth') return `残存歯 ${d.value || '-'}本`;
+    if (code === 'K3') return `${d.value || '-'}N`;
+    return d.value || '-';
+  };
+
+  const kaikaPositiveCount = assessment.kaikaItems ? Object.values(assessment.kaikaItems).filter(i => i.positive).length : 0;
+
+  const handlePrint = () => {
+    saveSrcInfo();
+    window.print();
+  };
+
+  const pStyle = {padding:'4px 8px',border:'1px solid #ccc',fontSize:'12px'};
+  const phStyle = {...pStyle, background:'#f0f0f0',fontWeight:'bold'};
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Input Form - no-print */}
+      <div className="no-print">
+        <Header title="紹介状作成" onBack={onClose} rightAction={
+          <button onClick={handlePrint} className="toggle-btn bg-dental-600 text-white px-4 py-2 rounded-xl font-medium text-sm">印刷 / PDF</button>
+        }/>
+        <div className="p-4 max-w-2xl mx-auto">
+          <div className="bg-white rounded-2xl card-shadow p-4 mb-4">
+            <h3 className="text-sm font-bold text-gray-700 mb-3">紹介先</h3>
+            <input value={destClinic} onChange={e=>setDestClinic(e.target.value)}
+              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm mb-2" placeholder="医療機関名（例：○○病院）"/>
+            <input value={destDoctor} onChange={e=>setDestDoctor(e.target.value)}
+              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm" placeholder="医師名（例：山田太郎）"/>
+          </div>
+
+          <div className="bg-white rounded-2xl card-shadow p-4 mb-4">
+            <h3 className="text-sm font-bold text-gray-700 mb-3">紹介元（自院情報）<span className="text-xs text-gray-400 font-normal ml-2">※次回から自動入力されます</span></h3>
+            <input value={srcClinic} onChange={e=>setSrcClinic(e.target.value)}
+              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm mb-2" placeholder="医院名（例：□□歯科医院）"/>
+            <input value={srcAddress} onChange={e=>setSrcAddress(e.target.value)}
+              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm mb-2" placeholder="住所"/>
+            <input value={srcPhone} onChange={e=>setSrcPhone(e.target.value)}
+              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm mb-2" placeholder="電話番号"/>
+            <input value={srcDoctor} onChange={e=>setSrcDoctor(e.target.value)}
+              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm" placeholder="医師名"/>
+          </div>
+
+          <div className="bg-white rounded-2xl card-shadow p-4 mb-4">
+            <h3 className="text-sm font-bold text-gray-700 mb-3">紹介目的</h3>
+            <div className="flex flex-wrap gap-2 mb-2">
+              {presets.map((p,i) => (
+                <button key={i} onClick={() => setPurpose(p)}
+                  className="toggle-btn text-xs bg-blue-50 text-blue-700 px-3 py-1.5 rounded-lg border border-blue-200">{p.substring(0, 15)}...</button>
+              ))}
+            </div>
+            <textarea value={purpose} onChange={e=>setPurpose(e.target.value)}
+              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm resize-none" rows={3} placeholder="紹介目的を入力..."/>
+          </div>
+
+          <div className="bg-white rounded-2xl card-shadow p-4 mb-4">
+            <h3 className="text-sm font-bold text-gray-700 mb-3">備考</h3>
+            <textarea value={remarks} onChange={e=>setRemarks(e.target.value)}
+              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm resize-none" rows={3} placeholder="その他伝達事項..."/>
+          </div>
+        </div>
+      </div>
+
+      {/* Print Layout */}
+      <div className="print-page" style={{fontFamily:'serif',color:'#333',lineHeight:'1.6',maxWidth:'700px',margin:'0 auto'}}>
+        <h1 style={{fontSize:'20px',fontWeight:'bold',textAlign:'center',marginBottom:'16px',letterSpacing:'4px'}}>診療情報提供書</h1>
+
+        <div style={{display:'flex',justifyContent:'space-between',marginBottom:'16px'}}>
+          <div style={{fontSize:'13px'}}>
+            <div style={{marginBottom:'4px'}}><strong>{destClinic || '＿＿＿＿＿＿＿＿'}</strong> 御中</div>
+            {destDoctor && <div>{destDoctor} 先生 御侍史</div>}
+          </div>
+          <div style={{fontSize:'12px',textAlign:'right'}}>
+            <div>作成日: {today}</div>
+          </div>
+        </div>
+
+        <div style={{border:'1px solid #999',borderRadius:'4px',padding:'12px',marginBottom:'16px',fontSize:'12px'}}>
+          <div style={{fontWeight:'bold',marginBottom:'4px',fontSize:'13px'}}>{srcClinic || '＿＿＿＿歯科医院'}</div>
+          {srcAddress && <div>{srcAddress}</div>}
+          {srcPhone && <div>TEL: {srcPhone}</div>}
+          <div style={{marginTop:'4px'}}>医師名: {srcDoctor || '＿＿＿＿＿＿'}</div>
+        </div>
+
+        {/* 患者情報 */}
+        <table style={{width:'100%',borderCollapse:'collapse',marginBottom:'12px'}}>
+          <tbody>
+            <tr>
+              <td style={phStyle}>患者氏名</td>
+              <td style={pStyle}>{patient.name}</td>
+              <td style={phStyle}>年齢</td>
+              <td style={pStyle}>{age !== null ? `${age}歳` : '-'}</td>
+              <td style={phStyle}>性別</td>
+              <td style={pStyle}>{patient.sex==='M'?(mode==='kaika'?'男性':'男児'):patient.sex==='F'?(mode==='kaika'?'女性':'女児'):'-'}</td>
+            </tr>
+            <tr>
+              <td style={phStyle}>生年月日</td>
+              <td style={pStyle} colSpan={3}>{formatDate(patient.birthDate)}</td>
+              <td style={phStyle}>患者ID</td>
+              <td style={pStyle}>{patient.patientId || '-'}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        {/* 傷病名 */}
+        <table style={{width:'100%',borderCollapse:'collapse',marginBottom:'12px'}}>
+          <tbody>
+            <tr>
+              <td style={{...phStyle,width:'80px'}}>傷病名</td>
+              <td style={pStyle}>
+                {mode === 'kaika' ? '口腔機能低下症' : '口腔機能発達不全症'}
+                {mode === 'kaika' && <span style={{marginLeft:'8px',fontSize:'11px',color:'#666'}}>（7項目中{kaikaPositiveCount}項目該当）</span>}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        {/* 検査結果 */}
+        <div style={{marginBottom:'12px'}}>
+          <div style={{fontSize:'13px',fontWeight:'bold',marginBottom:'4px',borderBottom:'1px solid #333',paddingBottom:'2px'}}>検査結果（{formatDate(assessment.date)}実施）</div>
+          {mode === 'kaika' ? (
+            <table style={{width:'100%',borderCollapse:'collapse',fontSize:'11px'}}>
+              <thead>
+                <tr style={{background:'#f0f0f0'}}>
+                  <th style={pStyle}>項目</th>
+                  <th style={pStyle}>検査法</th>
+                  <th style={pStyle}>測定値</th>
+                  <th style={{...pStyle,width:'50px'}}>判定</th>
+                </tr>
+              </thead>
+              <tbody>
+                {KAIKA_ITEMS.map(item => {
+                  const d = assessment.kaikaItems?.[item.code];
+                  return (
+                    <tr key={item.code} style={{background: d?.positive ? '#fef2f2' : '#fff'}}>
+                      <td style={pStyle}>{item.code} {item.label}</td>
+                      <td style={pStyle}>{item.method}</td>
+                      <td style={pStyle}>{getKaikaValue(item.code)}</td>
+                      <td style={{...pStyle,textAlign:'center',fontWeight:'bold',color: d?.positive ? '#dc2626' : '#16a34a'}}>{d?.positive ? '該当' : '非該当'}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          ) : (
+            <table style={{width:'100%',borderCollapse:'collapse',fontSize:'11px'}}>
+              <tbody>
+                {assessment.lipForce && (
+                  <tr><td style={phStyle}>口唇閉鎖力</td><td style={pStyle}>{assessment.lipForce} N</td></tr>
+                )}
+                {assessment.tonguePressure && (
+                  <tr><td style={phStyle}>舌圧</td><td style={pStyle}>{assessment.tonguePressure} kPa</td></tr>
+                )}
+                {CHECK_ITEMS.filter(item => {
+                  const v = assessment.checks?.[item.code];
+                  if (item.code==='C11') return v && v.length > 0;
+                  if (item.code==='C13') return v==='underweight'||v==='overweight';
+                  if (item.code==='C17') return v && v.length > 0;
+                  return v === true;
+                }).map(item => (
+                  <tr key={item.code} style={{background:'#fef2f2'}}>
+                    <td style={phStyle}>{item.code}</td>
+                    <td style={pStyle}>{item.label}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+
+        {/* 現在の管理内容 */}
+        {assessment.overallPlan && (
+          <div style={{marginBottom:'12px'}}>
+            <div style={{fontSize:'13px',fontWeight:'bold',marginBottom:'4px',borderBottom:'1px solid #333',paddingBottom:'2px'}}>現在の管理内容</div>
+            <div style={{fontSize:'12px',whiteSpace:'pre-line',padding:'4px'}}>{assessment.overallPlan}</div>
+          </div>
+        )}
+
+        {/* 紹介目的 */}
+        <div style={{marginBottom:'12px'}}>
+          <div style={{fontSize:'13px',fontWeight:'bold',marginBottom:'4px',borderBottom:'1px solid #333',paddingBottom:'2px'}}>紹介目的</div>
+          <div style={{fontSize:'12px',whiteSpace:'pre-line',padding:'4px',minHeight:'40px'}}>{purpose || '＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿＿'}</div>
+        </div>
+
+        {/* 備考 */}
+        {remarks && (
+          <div style={{marginBottom:'12px'}}>
+            <div style={{fontSize:'13px',fontWeight:'bold',marginBottom:'4px',borderBottom:'1px solid #333',paddingBottom:'2px'}}>備考</div>
+            <div style={{fontSize:'12px',whiteSpace:'pre-line',padding:'4px'}}>{remarks}</div>
+          </div>
+        )}
+
+        <div style={{marginTop:'20px',fontSize:'12px',textAlign:'center',color:'#666'}}>
+          以上、ご高診のほどよろしくお願いいたします。
+        </div>
+      </div>
     </div>
   );
 }
@@ -2711,6 +2959,10 @@ function App() {
     return <PrintView patient={currentPatient} assessment={currentAssessment} onClose={()=>setPage('plan')} mode={mode}/>;
   }
 
+  if (page === 'referral' && currentPatient && currentAssessment) {
+    return <ReferralLetter patient={currentPatient} assessment={currentAssessment} onClose={()=>setPage('plan')} mode={mode}/>;
+  }
+
   if (page === 'list') {
     return <PatientList patients={data.patients.filter(p => (p.mode || 'hattatsu') === mode)} assessments={data.assessments}
       onSelect={p=>{setCurrentPatient(p);setPage('detail');}}
@@ -2754,7 +3006,7 @@ function App() {
 
   if (page === 'plan' && currentPatient && currentAssessment) {
     return <ManagementPlan patient={currentPatient} assessment={currentAssessment}
-      onSave={savePlan} onBack={()=>setPage('detail')} onPrint={()=>setPage('print')} mode={mode}/>;
+      onSave={savePlan} onBack={()=>setPage('detail')} onPrint={()=>setPage('print')} onReferral={()=>setPage('referral')} mode={mode}/>;
   }
 
   return <PatientList patients={data.patients.filter(p => (p.mode || 'hattatsu') === mode)} assessments={data.assessments}
