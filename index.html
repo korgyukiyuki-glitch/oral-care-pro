@@ -2940,7 +2940,7 @@ function BillingFlowChart({ patient, assessments, mode, onBack }) {
 }
 
 // --- Patient Detail ---
-function PatientDetail({ patient, assessments, onBack, onEdit, onNewAssessment, onSelectAssessment, onDeleteAssessment, onBillingGuide, onScreening, mode }) {
+function PatientDetail({ patient, assessments, screenings, onBack, onEdit, onNewAssessment, onSelectAssessment, onDeleteAssessment, onBillingGuide, onScreening, mode }) {
   const [showGraphs, setShowGraphs] = useState(false);
   const [deleteHold, setDeleteHold] = useState(null);
   const [deleteProgress, setDeleteProgress] = useState(0);
@@ -2965,6 +2965,7 @@ function PatientDetail({ patient, assessments, onBack, onEdit, onNewAssessment, 
   };
   const age = calcAge(patient.birthDate);
   const patientAssessments = assessments.filter(a => a.patientId === patient.id).sort((a,b) => new Date(b.date) - new Date(a.date));
+  const patientScreenings = (screenings || []).filter(s => s.patientId === patient.id).sort((a,b) => new Date(b.date) - new Date(a.date));
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -3055,6 +3056,36 @@ function PatientDetail({ patient, assessments, onBack, onEdit, onNewAssessment, 
             </div>
           );
         })}
+
+        {mode === 'hattatsu' && (
+          <>
+            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 mt-6 px-1">🔬 スクリーニング検査履歴</h3>
+            {patientScreenings.length === 0 ? (
+              <div className="bg-white rounded-2xl card-shadow p-6 text-center text-gray-400 text-sm">まだスクリーニング記録がありません</div>
+            ) : patientScreenings.map(s => (
+              <div key={s.id} className="bg-white rounded-2xl card-shadow p-4 mb-2">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm font-medium text-gray-800">{formatDate(s.date)}</span>
+                  <div className="flex gap-1">
+                    {s.lipPositive && <span className="bg-red-50 text-red-600 text-xs font-bold px-2 py-0.5 rounded-lg">口唇↓</span>}
+                    {s.tonguePositive && <span className="bg-red-50 text-red-600 text-xs font-bold px-2 py-0.5 rounded-lg">舌圧↓</span>}
+                    {!s.lipPositive && !s.tonguePositive && <span className="bg-green-50 text-green-600 text-xs font-bold px-2 py-0.5 rounded-lg">正常</span>}
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-xs text-gray-400">口唇閉鎖力</span>
+                    <div className={s.lipPositive ? 'text-red-500 font-bold' : 'text-gray-700'}>{s.lipForce ? `${s.lipForce} N` : '—'}</div>
+                  </div>
+                  <div>
+                    <span className="text-xs text-gray-400">舌圧</span>
+                    <div className={s.tonguePositive ? 'text-red-500 font-bold' : 'text-gray-700'}>{s.tonguePressure ? `${s.tonguePressure} kPa` : '—'}</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </>
+        )}
       </div>
     </div>
   );
@@ -3063,7 +3094,7 @@ function PatientDetail({ patient, assessments, onBack, onEdit, onNewAssessment, 
 // ==================== APP ====================
 function App() {
   const [pin, setPin] = useState(null);
-  const [data, setData] = useState({ patients: [], assessments: [] });
+  const [data, setData] = useState({ patients: [], assessments: [], screenings: [] });
   const [ready, setReady] = useState(false);
   const [page, setPage] = useState('list');
   const [mode, setMode] = useState(null);
@@ -3076,21 +3107,21 @@ function App() {
     setPin(enteredPin);
     // migrate legacy unencrypted data if exists
     const legacy = getLegacyData();
-    let initialData = { patients: [], assessments: [] };
+    let initialData = { patients: [], assessments: [], screenings: [] };
 
     if (legacy && (legacy.patients.length > 0 || legacy.assessments.length > 0)) {
-      initialData = legacy;
-      await encryptData(legacy, enteredPin);
+      initialData = { ...legacy, screenings: legacy.screenings || [] };
+      await encryptData(initialData, enteredPin);
       localStorage.removeItem('oralFuncData');
     } else {
-      try { initialData = await decryptData(enteredPin); } catch { initialData = { patients: [], assessments: [] }; }
+      try { const d = await decryptData(enteredPin); initialData = { ...d, screenings: d.screenings || [] }; } catch { initialData = { patients: [], assessments: [], screenings: [] }; }
     }
 
     // Try to load from Firestore first, fall back to local encrypted data
     if (firebaseReady && db) {
       const firestoreData = await loadDataFromFirestore();
       if (firestoreData && (firestoreData.patients.length > 0 || firestoreData.assessments.length > 0)) {
-        initialData = firestoreData;
+        initialData = { ...firestoreData, screenings: firestoreData.screenings || [] };
       }
     }
 
@@ -3244,7 +3275,12 @@ function App() {
       onSave={(screening) => {
         const updated = {...currentPatient, screening};
         setCurrentPatient(updated);
-        setData(prev => ({...prev, patients: prev.patients.map(p => p.id === updated.id ? updated : p)}));
+        const screeningRecord = { id: generateId(), patientId: currentPatient.id, ...screening };
+        setData(prev => ({
+          ...prev,
+          patients: prev.patients.map(p => p.id === updated.id ? updated : p),
+          screenings: [...(prev.screenings || []), screeningRecord]
+        }));
         if (firebaseReady && db) savePatientToFirestore(updated);
       }}
       onGoAssessment={(lip, tongue) => {
@@ -3256,7 +3292,7 @@ function App() {
   }
 
   if (page === 'detail' && currentPatient) {
-    return <PatientDetail patient={currentPatient} assessments={data.assessments}
+    return <PatientDetail patient={currentPatient} assessments={data.assessments} screenings={data.screenings || []}
       onBack={()=>setPage('list')}
       onEdit={()=>{setEditingPatient(currentPatient);setPage('form');}}
       onNewAssessment={()=>{setCurrentAssessment(null);setPage('assessment');}}
