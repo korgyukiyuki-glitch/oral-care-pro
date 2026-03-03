@@ -1279,7 +1279,7 @@ function KaikaProgressGraphs({ assessments }) {
       tabs.map(t => React.createElement('button', {
         key: t.key, onClick: () => setSelected(t.key),
         className: `px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap ${selected === t.key ? 'bg-teal-500 text-white' : 'bg-gray-100 text-gray-600'}`
-      }, t.key + ' ' + t.label))
+      }, t.key.startsWith('K') ? t.key + ' ' + t.label : t.label))
     ),
     chartData.isK4
       ? React.createElement(ProgressLineChart, { series: chartData.series, title: 'ODK（パタカ）', thresholdValue: 6, thresholdLabel: '基準: 6.0回/秒', unit: '回/秒', yMin: 0 })
