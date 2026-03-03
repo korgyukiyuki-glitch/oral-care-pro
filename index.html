@@ -2494,7 +2494,7 @@ function ScreeningTest({ patient, onBack, onSave, onGoAssessment }) {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header title="スクリーニング検査" onBack={onBack} rightAction={
-        <button onClick={handleSave} className="toggle-btn bg-primary-600 text-white px-4 py-2 rounded-xl font-medium text-sm">保存</button>
+        <LongPressButton onAction={handleSave} className="bg-primary-600 text-white px-4 py-2 rounded-xl font-medium text-sm" label="保存"/>
       }/>
       {saveMsg && (
         <div className="fixed top-16 left-1/2 transform -translate-x-1/2 bg-green-600 text-white px-6 py-3 rounded-2xl shadow-lg z-50 text-sm font-medium animate-pulse">保存しました</div>
