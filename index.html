@@ -1593,6 +1593,31 @@ function PrintView({ patient, assessment, onClose, mode }) {
     return numA - numB;
   });
 
+  const ki = assessment.kaikaItems || {};
+  const kaikaPositiveCount = mode === 'kaika' ? Object.values(ki).filter(v => v.positive).length : 0;
+  const getKaikaValue = (code) => {
+    const d = ki[code];
+    if (!d) return '-';
+    if (code === 'K1') return d.value ? d.value + '%' : '-';
+    if (code === 'K3') return d.value ? d.value + (d.subtype === 'teeth' ? '本' : 'N') : '-';
+    if (code === 'K4') return `pa:${d.pa||'-'} ta:${d.ta||'-'} ka:${d.ka||'-'} 回/秒`;
+    if (code === 'K7') return d.value ? d.value + '点' + (d.subtype === 'eat10' ? '(EAT-10)' : '(RSST)') : '-';
+    return d.value || '-';
+  };
+  const getKaikaUnit = (code) => {
+    if (code === 'K1') return '%';
+    if (code === 'K2') return '';
+    if (code === 'K3') return ki.K3?.subtype === 'teeth' ? '本' : 'N';
+    if (code === 'K4') return '回/秒';
+    if (code === 'K5') return 'kPa';
+    if (code === 'K6') return 'mg/dL';
+    if (code === 'K7') return '点';
+    return '';
+  };
+
+  const pStyle = {padding:'4px 8px',border:'1px solid #ddd'};
+  const phStyle = {...pStyle, background:'#f5f5f5',width:'80px'};
+
   return (
     <div>
       <div className="no-print bg-white border-b px-4 py-3 flex items-center justify-between sticky top-0 z-50">
@@ -1600,118 +1625,234 @@ function PrintView({ patient, assessment, onClose, mode }) {
         <LongPressButton onAction={()=>window.print()} className="bg-dental-600 text-white px-6 py-2 rounded-xl font-medium text-sm" label="PDF保存 / 印刷"/>
       </div>
 
-      {/* Page 1: チェックシート */}
-      <div className="print-page max-w-3xl mx-auto p-6 bg-white" style={{minHeight:'auto'}}>
-        <h1 style={{fontSize:'18px',fontWeight:'bold',textAlign:'center',marginBottom:'4px'}}>口腔機能評価チェックシート</h1>
-        <div style={{textAlign:'center',fontSize:'12px',color:'#666',marginBottom:'16px'}}>評価日: {formatDate(assessment.date)}</div>
+      {mode === 'kaika' ? (
+        <>
+        {/* Kaika Page 1: 検査結果 */}
+        <div className="print-page max-w-3xl mx-auto p-6 bg-white" style={{minHeight:'auto'}}>
+          <h1 style={{fontSize:'18px',fontWeight:'bold',textAlign:'center',marginBottom:'4px',color:'#0f766e'}}>口腔機能低下症 検査結果</h1>
+          <div style={{textAlign:'center',fontSize:'12px',color:'#666',marginBottom:'16px'}}>評価日: {formatDate(assessment.date)}</div>
 
-        <table style={{width:'100%',borderCollapse:'collapse',fontSize:'13px',marginBottom:'12px'}}>
-          <tbody>
-            <tr><td style={{padding:'4px 8px',border:'1px solid #ddd',background:'#f5f5f5',width:'80px'}}>患者名</td><td style={{padding:'4px 8px',border:'1px solid #ddd'}}>{patient.name}</td>
-                <td style={{padding:'4px 8px',border:'1px solid #ddd',background:'#f5f5f5',width:'80px'}}>年齢</td><td style={{padding:'4px 8px',border:'1px solid #ddd'}}>{age}歳</td></tr>
-            <tr><td style={{padding:'4px 8px',border:'1px solid #ddd',background:'#f5f5f5'}}>体重</td><td style={{padding:'4px 8px',border:'1px solid #ddd'}}>{patient.weight} kg</td>
-                <td style={{padding:'4px 8px',border:'1px solid #ddd',background:'#f5f5f5'}}>身長</td><td style={{padding:'4px 8px',border:'1px solid #ddd'}}>{patient.height} cm</td></tr>
-            <tr><td style={{padding:'4px 8px',border:'1px solid #ddd',background:'#f5f5f5'}}>{isKaup?'カウプ指数':'ローレル指数'}</td><td style={{padding:'4px 8px',border:'1px solid #ddd'}}>{idx || '-'}</td>
-                <td style={{padding:'4px 8px',border:'1px solid #ddd',background:'#f5f5f5'}}>口唇閉鎖力</td><td style={{padding:'4px 8px',border:'1px solid #ddd'}}>{assessment.lipForce ? assessment.lipForce+' N' : '-'}</td></tr>
-            <tr><td style={{padding:'4px 8px',border:'1px solid #ddd',background:'#f5f5f5'}}>舌圧</td><td style={{padding:'4px 8px',border:'1px solid #ddd'}}>{assessment.tonguePressure ? assessment.tonguePressure+' kPa' : '-'}</td>
-                <td style={{padding:'4px 8px',border:'1px solid #ddd',background:'#f5f5f5'}}>担当医</td><td style={{padding:'4px 8px',border:'1px solid #ddd'}}>{patient.doctor || '-'}</td></tr>
-          </tbody>
-        </table>
+          <table style={{width:'100%',borderCollapse:'collapse',fontSize:'13px',marginBottom:'12px'}}>
+            <tbody>
+              <tr><td style={phStyle}>患者名</td><td style={pStyle}>{patient.name}</td>
+                  <td style={phStyle}>年齢</td><td style={pStyle}>{age}歳</td></tr>
+              <tr><td style={phStyle}>性別</td><td style={pStyle}>{patient.sex==='M'?'男性':patient.sex==='F'?'女性':'-'}</td>
+                  <td style={phStyle}>担当医</td><td style={pStyle}>{patient.doctor || '-'}</td></tr>
+            </tbody>
+          </table>
 
-        <table style={{width:'100%',borderCollapse:'collapse',fontSize:'12px'}}>
-          <thead>
-            <tr style={{background:'#2563eb',color:'white'}}>
-              <th style={{padding:'6px',border:'1px solid #2563eb',width:'50px'}}>コード</th>
-              <th style={{padding:'6px',border:'1px solid #2563eb',textAlign:'left'}}>評価項目</th>
-              <th style={{padding:'6px',border:'1px solid #2563eb',width:'60px'}}>結果</th>
-            </tr>
-          </thead>
-          <tbody>
-            {CHECK_ITEMS.map((item,i) => {
-              const val = assessment.checks?.[item.code];
-              let result = '-';
-              let isPositive = false;
-              if (item.code === 'C11') { isPositive = val && val.length > 0; result = isPositive ? val.join(', ') : '該当なし'; }
-              else if (item.code === 'C13') { isPositive = val==='underweight'||val==='overweight'; result = val==='normal'?'正常':val==='underweight'?'やせ':'肥満'; }
-              else if (item.code === 'C17') { isPositive = val && val.length > 0; result = isPositive ? '該当' : '-'; }
-              else { isPositive = val === true; result = val === true ? '該当' : '非該当'; }
-              return (
-                <tr key={item.code} style={{background: isPositive ? '#fef2f2' : i%2===0 ? '#fff' : '#f9fafb'}}>
-                  <td style={{padding:'4px 6px',border:'1px solid #ddd',textAlign:'center',fontWeight:'bold'}}>{item.code}</td>
-                  <td style={{padding:'4px 6px',border:'1px solid #ddd'}}>{item.label}</td>
-                  <td style={{padding:'4px 6px',border:'1px solid #ddd',textAlign:'center',color:isPositive?'#dc2626':'#666',fontWeight:isPositive?'bold':'normal'}}>{item.code==='C11' && isPositive ? '該当' : result}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-        {assessment.checks?.C11 && assessment.checks.C11.length > 0 && (
-          <div style={{fontSize:'11px',marginTop:'4px',color:'#666'}}>C11 口腔習癖: {assessment.checks.C11.join('、')}</div>
-        )}
-        {assessment.checks?.C17 && (
-          <div style={{fontSize:'11px',marginTop:'4px',color:'#666'}}>C17 上記以外の問題点: {assessment.checks.C17}</div>
-        )}
-      </div>
+          <div style={{textAlign:'center',fontSize:'14px',fontWeight:'bold',marginBottom:'12px',padding:'8px',borderRadius:'8px',
+            background: kaikaPositiveCount >= 3 ? '#fef2f2' : '#f0fdf4',
+            color: kaikaPositiveCount >= 3 ? '#dc2626' : '#16a34a',
+            border: kaikaPositiveCount >= 3 ? '2px solid #fca5a5' : '2px solid #86efac'}}>
+            判定結果: 該当 {kaikaPositiveCount}/7項目
+            {kaikaPositiveCount >= 3 ? ' → 口腔機能低下症に該当' : ' → 口腔機能低下症に非該当'}
+          </div>
 
-      {/* Page 2: 管理計画書 */}
-      <div className="print-page max-w-3xl mx-auto p-6 bg-white mt-4">
-        <h1 style={{fontSize:'18px',fontWeight:'bold',textAlign:'center',marginBottom:'4px',color:'#1d4ed8'}}>口腔機能発達不全症 管理計画書</h1>
-        <div style={{textAlign:'center',fontSize:'12px',color:'#666',marginBottom:'16px'}}>
-          患者名: {patient.name}　　作成日: {formatDate(assessment.date)}　　担当医: {patient.doctor || ''}
-        </div>
-
-        {checkedCodes.length > 0 && (
-          <table style={{width:'100%',borderCollapse:'collapse',fontSize:'12px',marginBottom:'16px'}}>
+          <table style={{width:'100%',borderCollapse:'collapse',fontSize:'12px'}}>
             <thead>
-              <tr style={{background:'#1d4ed8',color:'white'}}>
-                <th style={{padding:'6px',border:'1px solid #1d4ed8',width:'100px'}}>項目</th>
-                <th style={{padding:'6px',border:'1px solid #1d4ed8'}}>問題点</th>
-                <th style={{padding:'6px',border:'1px solid #1d4ed8'}}>短期計画</th>
-                <th style={{padding:'6px',border:'1px solid #1d4ed8'}}>中長期計画</th>
+              <tr style={{background:'#0f766e',color:'white'}}>
+                <th style={{padding:'6px',border:'1px solid #0f766e',width:'40px'}}>No.</th>
+                <th style={{padding:'6px',border:'1px solid #0f766e',textAlign:'left'}}>検査項目</th>
+                <th style={{padding:'6px',border:'1px solid #0f766e',textAlign:'left',width:'120px'}}>検査方法</th>
+                <th style={{padding:'6px',border:'1px solid #0f766e',width:'100px'}}>基準値</th>
+                <th style={{padding:'6px',border:'1px solid #0f766e',width:'120px'}}>測定値</th>
+                <th style={{padding:'6px',border:'1px solid #0f766e',width:'60px'}}>判定</th>
               </tr>
             </thead>
             <tbody>
-              {checkedCodes.map((code,i) => {
-                const item = CHECK_ITEMS.find(it=>it.code===code);
-                const plan = plans[code];
-                const is3stage = plan.shortTerm !== undefined;
+              {KAIKA_ITEMS.map((item,i) => {
+                const d = ki[item.code] || {};
+                const isPositive = d.positive;
+                const thresholds = {K1:'50%以上',K2:'27.0未満',K3:d.subtype==='teeth'?'20本未満':'200N未満',K4:'6.0回/秒未満',K5:'20kPa未満',K6:'100mg/dL未満',K7:'3点以上(EAT-10)'};
                 return (
-                  <tr key={code} style={{background:i%2===0?'#fff':'#f9fafb'}}>
-                    <td style={{padding:'6px',border:'1px solid #ddd',fontWeight:'bold',verticalAlign:'top'}}>
-                      <div>{code}</div><div style={{fontSize:'10px',fontWeight:'normal',color:'#666'}}>{item?.label}</div>
-                    </td>
-                    <td style={{padding:'6px',border:'1px solid #ddd',verticalAlign:'top'}}>{plan.problem}</td>
-                    {is3stage ? (
-                      <>
-                        <td style={{padding:'6px',border:'1px solid #ddd',verticalAlign:'top'}}>{plan.shortTerm}</td>
-                        <td style={{padding:'6px',border:'1px solid #ddd',verticalAlign:'top'}}>{plan.longTerm}</td>
-                      </>
-                    ) : (
-                      <td colSpan={2} style={{padding:'6px',border:'1px solid #ddd',verticalAlign:'top'}}>{plan.plan}</td>
-                    )}
+                  <tr key={item.code} style={{background: isPositive ? '#fef2f2' : i%2===0 ? '#fff' : '#f9fafb'}}>
+                    <td style={{padding:'5px 6px',border:'1px solid #ddd',textAlign:'center',fontWeight:'bold'}}>{item.code}</td>
+                    <td style={{padding:'5px 6px',border:'1px solid #ddd'}}>{item.label}</td>
+                    <td style={{padding:'5px 6px',border:'1px solid #ddd',fontSize:'10px',color:'#666'}}>{item.method}</td>
+                    <td style={{padding:'5px 6px',border:'1px solid #ddd',textAlign:'center',fontSize:'11px'}}>{thresholds[item.code]}</td>
+                    <td style={{padding:'5px 6px',border:'1px solid #ddd',textAlign:'center',fontWeight:'bold'}}>{getKaikaValue(item.code)}</td>
+                    <td style={{padding:'5px 6px',border:'1px solid #ddd',textAlign:'center',color:isPositive?'#dc2626':'#16a34a',fontWeight:'bold'}}>{isPositive ? '該当' : '非該当'}</td>
                   </tr>
                 );
               })}
             </tbody>
           </table>
-        )}
 
-        <div style={{border:'2px solid #374151',borderRadius:'8px',padding:'12px',marginBottom:'12px'}}>
-          <h3 style={{fontSize:'13px',fontWeight:'bold',marginBottom:'8px',color:'#374151'}}>総合管理計画</h3>
-          <div style={{fontSize:'12px',whiteSpace:'pre-line'}}>{assessment.overallPlan || ''}</div>
+          {assessment.notes && (
+            <div style={{marginTop:'12px',fontSize:'11px',color:'#666'}}>
+              <span style={{fontWeight:'bold'}}>備考:</span> {assessment.notes}
+            </div>
+          )}
         </div>
 
-        {assessment.notes && (
-          <div style={{border:'1px solid #ddd',borderRadius:'8px',padding:'12px'}}>
-            <h3 style={{fontSize:'13px',fontWeight:'bold',marginBottom:'4px',color:'#666'}}>追加所見</h3>
-            <div style={{fontSize:'12px',whiteSpace:'pre-line'}}>{assessment.notes}</div>
+        {/* Kaika Page 2: 管理計画書 */}
+        <div className="print-page max-w-3xl mx-auto p-6 bg-white mt-4">
+          <h1 style={{fontSize:'18px',fontWeight:'bold',textAlign:'center',marginBottom:'4px',color:'#0f766e'}}>口腔機能低下症 管理計画書</h1>
+          <div style={{textAlign:'center',fontSize:'12px',color:'#666',marginBottom:'16px'}}>
+            患者名: {patient.name}　　作成日: {formatDate(assessment.date)}　　担当医: {patient.doctor || ''}
           </div>
-        )}
 
-        <div style={{marginTop:'24px',fontSize:'11px',color:'#999',textAlign:'right'}}>
-          次回評価予定: ＿＿＿＿年＿＿月＿＿日
+          {checkedCodes.length > 0 && (
+            <table style={{width:'100%',borderCollapse:'collapse',fontSize:'12px',marginBottom:'16px'}}>
+              <thead>
+                <tr style={{background:'#0f766e',color:'white'}}>
+                  <th style={{padding:'6px',border:'1px solid #0f766e',width:'100px'}}>項目</th>
+                  <th style={{padding:'6px',border:'1px solid #0f766e'}}>問題点</th>
+                  <th style={{padding:'6px',border:'1px solid #0f766e'}}>管理計画</th>
+                </tr>
+              </thead>
+              <tbody>
+                {checkedCodes.map((code,i) => {
+                  const item = KAIKA_ITEMS.find(it=>it.code===code);
+                  const plan = plans[code];
+                  return (
+                    <tr key={code} style={{background:i%2===0?'#fff':'#f9fafb'}}>
+                      <td style={{padding:'6px',border:'1px solid #ddd',fontWeight:'bold',verticalAlign:'top'}}>
+                        <div>{code}</div><div style={{fontSize:'10px',fontWeight:'normal',color:'#666'}}>{item?.label}</div>
+                      </td>
+                      <td style={{padding:'6px',border:'1px solid #ddd',verticalAlign:'top'}}>{plan.problem}</td>
+                      <td style={{padding:'6px',border:'1px solid #ddd',verticalAlign:'top'}}>{plan.plan}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+
+          <div style={{border:'2px solid #374151',borderRadius:'8px',padding:'12px',marginBottom:'12px'}}>
+            <h3 style={{fontSize:'13px',fontWeight:'bold',marginBottom:'8px',color:'#374151'}}>総合管理計画</h3>
+            <div style={{fontSize:'12px',whiteSpace:'pre-line'}}>{assessment.overallPlan || ''}</div>
+          </div>
+
+          {assessment.notes && (
+            <div style={{border:'1px solid #ddd',borderRadius:'8px',padding:'12px'}}>
+              <h3 style={{fontSize:'13px',fontWeight:'bold',marginBottom:'4px',color:'#666'}}>追加所見</h3>
+              <div style={{fontSize:'12px',whiteSpace:'pre-line'}}>{assessment.notes}</div>
+            </div>
+          )}
+
+          <div style={{marginTop:'24px',fontSize:'11px',color:'#999',textAlign:'right'}}>
+            次回評価予定: ＿＿＿＿年＿＿月＿＿日
+          </div>
         </div>
-      </div>
+        </>
+      ) : (
+        <>
+        {/* Hattatsu Page 1: チェックシート */}
+        <div className="print-page max-w-3xl mx-auto p-6 bg-white" style={{minHeight:'auto'}}>
+          <h1 style={{fontSize:'18px',fontWeight:'bold',textAlign:'center',marginBottom:'4px'}}>口腔機能評価チェックシート</h1>
+          <div style={{textAlign:'center',fontSize:'12px',color:'#666',marginBottom:'16px'}}>評価日: {formatDate(assessment.date)}</div>
+
+          <table style={{width:'100%',borderCollapse:'collapse',fontSize:'13px',marginBottom:'12px'}}>
+            <tbody>
+              <tr><td style={phStyle}>患者名</td><td style={pStyle}>{patient.name}</td>
+                  <td style={phStyle}>年齢</td><td style={pStyle}>{age}歳</td></tr>
+              <tr><td style={phStyle}>体重</td><td style={pStyle}>{patient.weight} kg</td>
+                  <td style={phStyle}>身長</td><td style={pStyle}>{patient.height} cm</td></tr>
+              <tr><td style={phStyle}>{isKaup?'カウプ指数':'ローレル指数'}</td><td style={pStyle}>{idx || '-'}</td>
+                  <td style={phStyle}>口唇閉鎖力</td><td style={pStyle}>{assessment.lipForce ? assessment.lipForce+' N' : '-'}</td></tr>
+              <tr><td style={phStyle}>舌圧</td><td style={pStyle}>{assessment.tonguePressure ? assessment.tonguePressure+' kPa' : '-'}</td>
+                  <td style={phStyle}>担当医</td><td style={pStyle}>{patient.doctor || '-'}</td></tr>
+            </tbody>
+          </table>
+
+          <table style={{width:'100%',borderCollapse:'collapse',fontSize:'12px'}}>
+            <thead>
+              <tr style={{background:'#2563eb',color:'white'}}>
+                <th style={{padding:'6px',border:'1px solid #2563eb',width:'50px'}}>コード</th>
+                <th style={{padding:'6px',border:'1px solid #2563eb',textAlign:'left'}}>評価項目</th>
+                <th style={{padding:'6px',border:'1px solid #2563eb',width:'60px'}}>結果</th>
+              </tr>
+            </thead>
+            <tbody>
+              {CHECK_ITEMS.map((item,i) => {
+                const val = assessment.checks?.[item.code];
+                let result = '-';
+                let isPositive = false;
+                if (item.code === 'C11') { isPositive = val && val.length > 0; result = isPositive ? val.join(', ') : '該当なし'; }
+                else if (item.code === 'C13') { isPositive = val==='underweight'||val==='overweight'; result = val==='normal'?'正常':val==='underweight'?'やせ':'肥満'; }
+                else if (item.code === 'C17') { isPositive = val && val.length > 0; result = isPositive ? '該当' : '-'; }
+                else { isPositive = val === true; result = val === true ? '該当' : '非該当'; }
+                return (
+                  <tr key={item.code} style={{background: isPositive ? '#fef2f2' : i%2===0 ? '#fff' : '#f9fafb'}}>
+                    <td style={{padding:'4px 6px',border:'1px solid #ddd',textAlign:'center',fontWeight:'bold'}}>{item.code}</td>
+                    <td style={{padding:'4px 6px',border:'1px solid #ddd'}}>{item.label}</td>
+                    <td style={{padding:'4px 6px',border:'1px solid #ddd',textAlign:'center',color:isPositive?'#dc2626':'#666',fontWeight:isPositive?'bold':'normal'}}>{item.code==='C11' && isPositive ? '該当' : result}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          {assessment.checks?.C11 && assessment.checks.C11.length > 0 && (
+            <div style={{fontSize:'11px',marginTop:'4px',color:'#666'}}>C11 口腔習癖: {assessment.checks.C11.join('、')}</div>
+          )}
+          {assessment.checks?.C17 && (
+            <div style={{fontSize:'11px',marginTop:'4px',color:'#666'}}>C17 上記以外の問題点: {assessment.checks.C17}</div>
+          )}
+        </div>
+
+        {/* Hattatsu Page 2: 管理計画書 */}
+        <div className="print-page max-w-3xl mx-auto p-6 bg-white mt-4">
+          <h1 style={{fontSize:'18px',fontWeight:'bold',textAlign:'center',marginBottom:'4px',color:'#1d4ed8'}}>口腔機能発達不全症 管理計画書</h1>
+          <div style={{textAlign:'center',fontSize:'12px',color:'#666',marginBottom:'16px'}}>
+            患者名: {patient.name}　　作成日: {formatDate(assessment.date)}　　担当医: {patient.doctor || ''}
+          </div>
+
+          {checkedCodes.length > 0 && (
+            <table style={{width:'100%',borderCollapse:'collapse',fontSize:'12px',marginBottom:'16px'}}>
+              <thead>
+                <tr style={{background:'#1d4ed8',color:'white'}}>
+                  <th style={{padding:'6px',border:'1px solid #1d4ed8',width:'100px'}}>項目</th>
+                  <th style={{padding:'6px',border:'1px solid #1d4ed8'}}>問題点</th>
+                  <th style={{padding:'6px',border:'1px solid #1d4ed8'}}>短期計画</th>
+                  <th style={{padding:'6px',border:'1px solid #1d4ed8'}}>中長期計画</th>
+                </tr>
+              </thead>
+              <tbody>
+                {checkedCodes.map((code,i) => {
+                  const item = CHECK_ITEMS.find(it=>it.code===code);
+                  const plan = plans[code];
+                  const is3stage = plan.shortTerm !== undefined;
+                  return (
+                    <tr key={code} style={{background:i%2===0?'#fff':'#f9fafb'}}>
+                      <td style={{padding:'6px',border:'1px solid #ddd',fontWeight:'bold',verticalAlign:'top'}}>
+                        <div>{code}</div><div style={{fontSize:'10px',fontWeight:'normal',color:'#666'}}>{item?.label}</div>
+                      </td>
+                      <td style={{padding:'6px',border:'1px solid #ddd',verticalAlign:'top'}}>{plan.problem}</td>
+                      {is3stage ? (
+                        <>
+                          <td style={{padding:'6px',border:'1px solid #ddd',verticalAlign:'top'}}>{plan.shortTerm}</td>
+                          <td style={{padding:'6px',border:'1px solid #ddd',verticalAlign:'top'}}>{plan.longTerm}</td>
+                        </>
+                      ) : (
+                        <td colSpan={2} style={{padding:'6px',border:'1px solid #ddd',verticalAlign:'top'}}>{plan.plan}</td>
+                      )}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+
+          <div style={{border:'2px solid #374151',borderRadius:'8px',padding:'12px',marginBottom:'12px'}}>
+            <h3 style={{fontSize:'13px',fontWeight:'bold',marginBottom:'8px',color:'#374151'}}>総合管理計画</h3>
+            <div style={{fontSize:'12px',whiteSpace:'pre-line'}}>{assessment.overallPlan || ''}</div>
+          </div>
+
+          {assessment.notes && (
+            <div style={{border:'1px solid #ddd',borderRadius:'8px',padding:'12px'}}>
+              <h3 style={{fontSize:'13px',fontWeight:'bold',marginBottom:'4px',color:'#666'}}>追加所見</h3>
+              <div style={{fontSize:'12px',whiteSpace:'pre-line'}}>{assessment.notes}</div>
+            </div>
+          )}
+
+          <div style={{marginTop:'24px',fontSize:'11px',color:'#999',textAlign:'right'}}>
+            次回評価予定: ＿＿＿＿年＿＿月＿＿日
+          </div>
+        </div>
+        </>
+      )}
     </div>
   );
 }
