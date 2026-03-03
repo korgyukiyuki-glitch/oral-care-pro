@@ -2605,79 +2605,79 @@ function BillingFlowChart({ patient, assessments, mode, onBack }) {
   const age = calcAge(patient.birthDate);
   const patientAssessments = assessments.filter(a => a.patientId === patient.id).sort((a,b) => new Date(b.date) - new Date(a.date));
   const latest = patientAssessments[0];
-  const positiveCount = latest?.kaikaItems ? Object.values(latest.kaikaItems).filter(i => i.positive).length : 0;
+  // 低下症: kaikaItemsから陽性数
+  const kaikaPositiveCount = latest?.kaikaItems ? Object.values(latest.kaikaItems).filter(i => i.positive).length : 0;
   const k3Subtype = latest?.kaikaItems?.K3?.subtype;
+  // 発達不全症: checksから陽性数
+  const hattatsuPositiveCount = latest?.checks ? Object.entries(latest.checks).filter(([k,v]) => {
+    if(k==='C11') return v && v.length > 0;
+    if(k==='C13') return v==='underweight' || v==='overweight';
+    if(k==='C17') return v && v.length > 0;
+    if(k==='C11_has' || k==='C13_patient') return false;
+    return v === true;
+  }).length : 0;
+  const positiveCount = mode === 'kaika' ? kaikaPositiveCount : hattatsuPositiveCount;
 
-  const KAIKA_BILLING = {
-    firstExam: [
-      { code: '舌圧検査', points: 140, freq: '3月に1回', note: '舌圧測定器' },
-      { code: '咀嚼能力検査1', points: 140, freq: '3月に1回', note: 'グルコセンサー等', group: 'exam3m' },
-      { code: '咬合圧検査1', points: 130, freq: '3月に1回', note: 'デンタルプレスケールII', group: 'exam3m' },
-    ],
-    reeval: [
-      { code: '舌圧検査', points: 140, freq: '3月に1回' },
-      { code: '咀嚼能力検査1', points: 140, freq: '3月に1回', group: 'exam3m' },
-      { code: '咬合圧検査1', points: 130, freq: '3月に1回', group: 'exam3m' },
-    ],
-    monthly: [
-      { code: '口腔機能管理料', points: 60, freq: '月1回' },
-      { code: '口管強加算', points: 50, freq: '月1回', condition: 'koukankyou' },
-      { code: '歯リハ3', points: 50, freq: '月2回', note: '口腔機能訓練' },
-      { code: '実地指導料1', points: 80, freq: '月1回', note: 'DH実施' },
-      { code: '口腔機能指導加算', points: 10, freq: '月1回', note: '実地指導に併算定' },
-    ],
-    warnings: [
-      '咬合圧検査と咀嚼能力検査は3月以内にいずれか1回のみ',
-      '口機能は歯管または特疾管の算定患者に限る',
-      '歯リハ3は月2回まで算定可',
-    ]
-  };
-  const HATTATSU_BILLING = {
-    firstExam: [
-      { code: '小児口唇閉鎖力検査', points: 100, freq: '3月に1回' },
-      { code: '舌圧検査', points: 140, freq: '3月に1回' },
-    ],
-    reeval: [
-      { code: '小児口唇閉鎖力検査', points: 100, freq: '3月に1回' },
-      { code: '舌圧検査', points: 140, freq: '3月に1回' },
-    ],
-    monthly: [
-      { code: '小児口腔機能管理料', points: 60, freq: '月1回' },
-      { code: '口管強加算', points: 50, freq: '月1回', condition: 'koukankyou' },
-      { code: '歯リハ3', points: 50, freq: '月2回' },
-      { code: '実地指導料1', points: 80, freq: '月1回' },
-      { code: '口腔機能指導加算', points: 12, freq: '月1回', note: '実地指導に併算定' },
-    ],
-    warnings: [
-      '対象: 18歳未満',
-      '小機能は歯管または特疾管の算定患者に限る',
-      '歯リハ3は月2回まで算定可',
-    ]
-  };
-
-  const SCREENING_BILLING = {
-    hattatsu: [
-      { code: '小児口唇閉鎖力検査', points: 100, freq: '3月に1回', note: 'りっぷるくん等' },
-      { code: '舌圧検査', points: 140, freq: '3月に1回', note: 'JMS舌圧測定器' },
-    ],
-    kaika: [
-      { code: '舌圧検査', points: 140, freq: '3月に1回', note: '舌圧測定器' },
-    ],
-    warnings: {
-      hattatsu: ['スクリーニングのみの場合、管理料は算定できません', '基準値未満の場合 → 口腔機能評価（C1-C17）へ'],
-      kaika: ['スクリーニングのみの場合、管理料は算定できません'],
+  // 段階判定
+  const getDiagnosisLevel = () => {
+    if (mode === 'kaika') {
+      if (positiveCount >= 3) return 'confirmed'; // 口腔機能低下症
+      if (positiveCount >= 1) return 'managing';  // 管理中
+      return 'suspected';                          // 疑い
+    } else {
+      // 発達不全症: 簡易判定（詳細は授乳/卒乳で異なるが、ここでは項目数で判定）
+      if (positiveCount >= 3) return 'confirmed';  // 口腔機能発達不全症
+      if (positiveCount >= 1) return 'managing';   // 管理中
+      return 'suspected';                           // 疑い
     }
   };
+  const diagLevel = latest ? getDiagnosisLevel() : 'suspected';
+  const diagLabel = mode === 'kaika'
+    ? { suspected: '口腔機能低下症の疑い', managing: '口腔機能 管理中', confirmed: '口腔機能低下症' }
+    : { suspected: '口腔機能発達不全症の疑い', managing: '口腔機能 管理中', confirmed: '口腔機能発達不全症' };
 
-  const billing = mode === 'kaika' ? KAIKA_BILLING : HATTATSU_BILLING;
+  // === 低下症の算定データ（3段階） ===
+  const KAIKA_EXAM = [
+    { code: '舌圧検査', points: 140, freq: '3月に1回', note: '舌圧測定器' },
+    { code: '咀嚼能力検査1', points: 140, freq: '3月に1回', note: 'グルコセンサー等', group: 'exam3m' },
+    { code: '咬合圧検査1', points: 130, freq: '3月に1回', note: 'デンタルプレスケールII', group: 'exam3m' },
+    { code: '口腔細菌定量検査2', points: 65, freq: '3月に1回', note: '細菌カウンタ' },
+  ];
+  const KAIKA_MGMT_BASIC = [
+    { code: '歯科疾患管理料', points: 100, freq: '月1回', note: '歯管' },
+    { code: '実地指導料1', points: 80, freq: '月1回', note: 'DH実施' },
+    { code: '口腔機能指導加算', points: 10, freq: '月1回', note: '実地指導に併算定' },
+  ];
+  const KAIKA_MGMT_FULL = [
+    { code: '口腔機能管理料', points: 60, freq: '月1回', note: '口機能' },
+    { code: '口管強加算', points: 50, freq: '月1回', condition: 'koukankyou' },
+    { code: '歯リハ3の2', points: 50, freq: '月2回', note: '口腔機能訓練' },
+  ];
+
+  // === 発達不全症の算定データ（3段階） ===
+  const HATTATSU_EXAM = [
+    { code: '小児口唇閉鎖力検査', points: 100, freq: '3月に1回' },
+    { code: '舌圧検査', points: 140, freq: '3月に1回' },
+  ];
+  const HATTATSU_MGMT_BASIC = [
+    { code: '歯科疾患管理料', points: 100, freq: '月1回', note: '歯管' },
+    { code: '実地指導料1', points: 80, freq: '月1回', note: 'DH実施' },
+    { code: '口腔機能指導加算', points: 10, freq: '月1回', note: '実地指導に併算定' },
+  ];
+  const HATTATSU_MGMT_FULL = [
+    { code: '小児口腔機能管理料', points: 60, freq: '月1回', note: '小機能' },
+    { code: '口管強加算', points: 50, freq: '月1回', condition: 'koukankyou' },
+    { code: '歯リハ3の1', points: 50, freq: '月2回', note: '口腔機能訓練' },
+  ];
 
   const getApplicableItems = () => {
     if (visitType === 'screening') {
-      return mode === 'kaika' ? SCREENING_BILLING.kaika : SCREENING_BILLING.hattatsu;
+      return mode === 'hattatsu' ? HATTATSU_EXAM : [];
     }
+    const examItems = mode === 'kaika' ? KAIKA_EXAM : HATTATSU_EXAM;
     let items = [];
+    // 検査料（初回・再評価時）
     if (visitType === 'first' || visitType === 'reeval') {
-      const examItems = visitType === 'first' ? billing.firstExam : billing.reeval;
       const ungrouped = examItems.filter(i => !i.group);
       const exam3m = examItems.filter(i => i.group === 'exam3m');
       if (exam3m.length > 0) {
@@ -2689,18 +2689,35 @@ function BillingFlowChart({ patient, assessments, mode, onBack }) {
       }
       items = [...ungrouped];
     }
-    if (mode === 'kaika' && positiveCount < 3) {
+    // 管理料（段階に応じて）
+    if (diagLevel === 'suspected') {
+      // 疑い → 検査のみ
       return items;
     }
-    const monthlyItems = billing.monthly.filter(item => {
-      if (item.condition === 'koukankyou' && !hasKoukankyou) return false;
-      return true;
-    });
-    items = [...items, ...monthlyItems];
+    const basicMgmt = mode === 'kaika' ? KAIKA_MGMT_BASIC : HATTATSU_MGMT_BASIC;
+    items = [...items, ...basicMgmt];
+    if (diagLevel === 'confirmed') {
+      const fullMgmt = (mode === 'kaika' ? KAIKA_MGMT_FULL : HATTATSU_MGMT_FULL).filter(item => {
+        if (item.condition === 'koukankyou' && !hasKoukankyou) return false;
+        return true;
+      });
+      items = [...items, ...fullMgmt];
+    }
     return items;
   };
 
-  const diagnosisNotMet = mode === 'kaika' && positiveCount < 3;
+  const WARNINGS = {
+    kaika: {
+      suspected: ['検査のみ算定可能です', '3項目以上陽性で口腔機能低下症の診断となります', '咬合圧検査と咀嚼能力検査は3月以内にいずれか1回のみ'],
+      managing: ['口機能・口管強・歯リハ3は確定診断（3項目以上陽性）後に算定可能', '咬合圧検査と咀嚼能力検査は3月以内にいずれか1回のみ'],
+      confirmed: ['咬合圧検査と咀嚼能力検査は3月以内にいずれか1回のみ', '口機能は歯管または特疾管の算定患者に限る', '歯リハ3は月2回まで算定可'],
+    },
+    hattatsu: {
+      suspected: ['スクリーニングのみの場合、管理料は算定できません', '基準値未満の場合 → 口腔機能評価（C1-C17）へ'],
+      managing: ['小機能・口管強・歯リハ3は確定診断後に算定可能', '対象: 18歳未満'],
+      confirmed: ['小機能は歯管または特疾管の算定患者に限る', '歯リハ3は月2回まで算定可', '対象: 18歳未満'],
+    }
+  };
 
   const handleNext = () => {
     if (step === 0 && visitType) {
@@ -2717,8 +2734,12 @@ function BillingFlowChart({ patient, assessments, mode, onBack }) {
 
   const items = showResult ? getApplicableItems() : [];
   const totalPoints = items.reduce((sum, i) => sum + i.points, 0);
-  const examItems = items.filter(i => !billing.monthly.find(m => m.code === i.code));
-  const mgmtItems = items.filter(i => billing.monthly.find(m => m.code === i.code));
+  const allExamCodes = [...(mode === 'kaika' ? KAIKA_EXAM : HATTATSU_EXAM)].map(e => e.code);
+  const examItems = items.filter(i => allExamCodes.includes(i.code));
+  const mgmtItems = items.filter(i => !allExamCodes.includes(i.code));
+  const activeWarnings = visitType === 'screening'
+    ? (WARNINGS[mode]?.suspected || [])
+    : (WARNINGS[mode]?.[diagLevel] || []);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -2728,12 +2749,12 @@ function BillingFlowChart({ patient, assessments, mode, onBack }) {
           <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-bold text-lg">{patient.name?.charAt(0)}</div>
           <div>
             <div className="font-bold text-gray-800">{patient.name}</div>
-            <div className="text-xs text-gray-500">{age !== null ? `${age}歳` : ''} ・ {mode === 'kaika' ? '口腔機能低下症' : '口腔機能発達不全症'}</div>
+            <div className="text-xs text-gray-500">{age !== null ? `${age}歳` : ''} ・ {diagLabel[diagLevel]}</div>
           </div>
-          {latest && mode === 'kaika' && (
+          {latest && (
             <div className="ml-auto text-right">
               <div className="text-xs text-gray-400">最新評価</div>
-              <div className={`text-sm font-bold ${positiveCount >= 3 ? 'text-red-600' : 'text-green-600'}`}>{positiveCount}項目陽性</div>
+              <div className={`text-sm font-bold ${diagLevel === 'confirmed' ? 'text-red-600' : diagLevel === 'managing' ? 'text-orange-600' : 'text-green-600'}`}>{positiveCount}項目陽性</div>
             </div>
           )}
         </div>
@@ -2821,12 +2842,17 @@ function BillingFlowChart({ patient, assessments, mode, onBack }) {
               <div className="text-xs text-gray-400 mb-3 flex gap-2 flex-wrap">
                 <span className="bg-gray-100 px-2 py-1 rounded">{visitType === 'screening' ? 'スクリーニング検査のみ' : visitType === 'first' ? '初回検査' : visitType === 'reeval' ? '再評価' : '継続管理'}</span>
                 {visitType !== 'screening' && <span className="bg-gray-100 px-2 py-1 rounded">口管強: {hasKoukankyou ? 'あり' : 'なし'}</span>}
+                <span className={`px-2 py-1 rounded font-bold ${diagLevel === 'confirmed' ? 'bg-red-100 text-red-700' : diagLevel === 'managing' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'}`}>{diagLabel[diagLevel]}（{positiveCount}項目）</span>
               </div>
 
-              {diagnosisNotMet && (
-                <div className="bg-red-50 border border-red-200 rounded-xl p-3 mb-4">
-                  <div className="text-sm font-bold text-red-700 mb-1">⚠️ 診断基準未達（{positiveCount}/7項目陽性）</div>
-                  <div className="text-xs text-red-600">口腔機能低下症の診断には3項目以上の陽性が必要です。検査料のみ算定可能で、管理・指導料は算定できません。</div>
+              {diagLevel !== 'confirmed' && visitType !== 'screening' && (
+                <div className={`border rounded-xl p-3 mb-4 ${diagLevel === 'managing' ? 'bg-orange-50 border-orange-200' : 'bg-blue-50 border-blue-200'}`}>
+                  <div className={`text-sm font-bold mb-1 ${diagLevel === 'managing' ? 'text-orange-700' : 'text-blue-700'}`}>
+                    {diagLevel === 'managing' ? '📋 管理中（確定診断前）' : '🔍 疑い（検査段階）'}
+                  </div>
+                  <div className={`text-xs ${diagLevel === 'managing' ? 'text-orange-600' : 'text-blue-600'}`}>
+                    {diagLevel === 'managing' ? '歯管＋実地指導は算定可能。口機能・口管強・歯リハ3は確定診断後に算定可能です。' : '検査のみ算定可能です。管理・指導料は算定できません。'}
+                  </div>
                 </div>
               )}
 
@@ -2881,23 +2907,23 @@ function BillingFlowChart({ patient, assessments, mode, onBack }) {
                 <span>⚠️</span>
                 <h4 className="text-sm font-bold text-amber-800">注意事項</h4>
               </div>
-              {(visitType === 'screening' ? SCREENING_BILLING.warnings[mode] : billing.warnings).map((w, i) => (
+              {activeWarnings.map((w, i) => (
                 <div key={i} className="text-xs text-amber-700 py-1 flex items-start gap-1">
                   <span className="mt-0.5">・</span><span>{w}</span>
                 </div>
               ))}
             </div>
 
-            {latest && mode === 'kaika' && (
+            {latest && (
               <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 mb-4">
                 <div className="flex items-center gap-2 mb-2">
                   <span>🤖</span>
                   <h4 className="text-sm font-bold text-blue-800">アプリデータ参考</h4>
                 </div>
                 <div className="text-xs text-blue-700 space-y-1">
-                  <div>最新評価: {formatDate(latest.date)} — 陽性 {positiveCount}/7項目</div>
-                  <div>{positiveCount >= 3 ? '→ 口腔機能低下症の診断基準を満たしています' : '→ 診断基準（3項目以上）に満たしていません'}</div>
-                  {k3Subtype && <div>K3検査法: {k3Subtype === 'force' ? 'デンタルプレスケール（咬合圧）' : '残存歯数'}</div>}
+                  <div>最新評価: {formatDate(latest.date)} — 陽性 {positiveCount}/{mode === 'kaika' ? 7 : 17}項目</div>
+                  <div>→ {diagLabel[diagLevel]}</div>
+                  {mode === 'kaika' && k3Subtype && <div>K3検査法: {k3Subtype === 'force' ? 'デンタルプレスケール（咬合圧）' : '残存歯数'}</div>}
                 </div>
               </div>
             )}
