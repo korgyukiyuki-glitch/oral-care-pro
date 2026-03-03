@@ -2198,10 +2198,9 @@ function ReferralLetter({ patient, assessment, onClose, mode }) {
   const today = formatDate(new Date().toISOString().split('T')[0]);
 
   const presets = mode === 'kaika' ? [
-    '嚥下機能の精密検査をお願いいたします。',
     '栄養状態の評価・管理をお願いいたします。',
     '全身状態の管理についてご相談させていただきたく、ご紹介いたします。',
-    '摂食嚥下リハビリテーションをお願いいたします。',
+    '服薬調整についてご相談させていただきたく、ご紹介いたします。',
   ] : [
     '口呼吸・鼻閉についての精査をお願いいたします。',
     '扁桃肥大・いびきについての精査をお願いいたします。',
