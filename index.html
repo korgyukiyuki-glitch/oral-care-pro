@@ -2751,7 +2751,7 @@ function BillingFlowChart({ patient, assessments, mode, onBack }) {
                 <h3 className="text-lg font-bold text-gray-800 mb-1">今日の来院目的は？</h3>
                 <p className="text-xs text-gray-400 mb-4">該当するものを選択してください</p>
                 {[
-                  { key: 'screening', label: 'スクリーニング検査のみ', desc: '口唇閉鎖力・舌圧の検査のみ実施', icon: '🔬' },
+                  ...(mode === 'hattatsu' ? [{ key: 'screening', label: 'スクリーニング検査のみ', desc: '口唇閉鎖力・舌圧の検査のみ実施', icon: '🔬' }] : []),
                   { key: 'first', label: '初回検査', desc: '初めて口腔機能の検査を行う', icon: '🔍' },
                   { key: 'reeval', label: '再評価', desc: '前回検査から3ヶ月以上経過', icon: '🔄' },
                   { key: 'monthly', label: '継続管理', desc: '毎月の管理・指導', icon: '📋' },
