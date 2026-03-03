@@ -2758,6 +2758,10 @@ function PatientDetail({ patient, assessments, onBack, onEdit, onNewAssessment, 
           ＋ 新しい評価を開始
         </button>
 
+        <button onClick={onBillingGuide} className="w-full bg-amber-500 text-white py-3 rounded-2xl font-bold text-base mb-4 active:bg-amber-600 transition card-shadow flex items-center justify-center gap-2">
+          <span>💰</span> 算定ガイド
+        </button>
+
         {patientAssessments.length >= 2 && (
           mode === 'kaika'
             ? <KaikaProgressGraphs assessments={[...patientAssessments].reverse()} />
