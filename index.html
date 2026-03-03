@@ -1061,6 +1061,237 @@ function KaikaRadarChart({ items }) {
   );
 }
 
+// --- Progress Line Chart (汎用SVG折れ線グラフ) ---
+function ProgressLineChart({ data, thresholdValue, thresholdLabel, thresholdDirection, color, unit, title, yMin: yMinProp, yMax: yMaxProp, series }) {
+  const W = 360, H = 220;
+  const ml = 45, mr = 15, mt = 30, mb = 35;
+  const cw = W - ml - mr, ch = H - mt - mb;
+
+  // Multi-line mode (for K4 ODK)
+  const isMulti = series && series.length > 0;
+  const allData = isMulti ? series.flatMap(s => s.data) : data;
+  const validAll = allData.filter(d => d.value !== null && d.value !== undefined && !isNaN(d.value));
+  if (validAll.length === 0) return React.createElement('div', {className:'text-center text-xs text-gray-400 py-8'}, 'データがありません');
+
+  const vals = validAll.map(d => d.value);
+  if (thresholdValue !== null && thresholdValue !== undefined) vals.push(thresholdValue);
+  const dMin = yMinProp !== null && yMinProp !== undefined ? yMinProp : Math.min(...vals);
+  const dMax = yMaxProp !== null && yMaxProp !== undefined ? yMaxProp : Math.max(...vals);
+  const range = dMax - dMin || 1;
+  const yMinF = Math.floor(dMin - range * 0.1);
+  const yMaxF = Math.ceil(dMax + range * 0.1);
+  const toY = v => mt + ch - ((v - yMinF) / (yMaxF - yMinF)) * ch;
+
+  // X-axis uses first series or data for date positions
+  const refData = isMulti ? series[0].data : data;
+  const toX = i => ml + (refData.length === 1 ? cw / 2 : (i / (refData.length - 1)) * cw);
+
+  // Grid lines (4 horizontal)
+  const gridLines = [];
+  for (let i = 0; i <= 4; i++) {
+    const yVal = yMinF + (yMaxF - yMinF) * i / 4;
+    gridLines.push({ y: toY(yVal), label: Math.round(yVal * 10) / 10 });
+  }
+
+  // Build segments for a data array (break on null)
+  const buildSegments = (arr) => {
+    const segs = []; let cur = [];
+    arr.forEach((d, i) => {
+      if (d.value !== null && d.value !== undefined && !isNaN(d.value)) {
+        cur.push({ x: toX(i), y: toY(d.value) });
+      } else { if (cur.length > 0) { segs.push(cur); cur = []; } }
+    });
+    if (cur.length > 0) segs.push(cur);
+    return segs;
+  };
+
+  // Date labels
+  const dateLabels = refData.map((d, i) => {
+    const dt = new Date(d.date);
+    return { x: toX(i), label: (dt.getMonth()+1) + '/' + dt.getDate() };
+  });
+
+  return React.createElement('div', null,
+    React.createElement('svg', { viewBox: `0 0 ${W} ${H}`, className: 'w-full', style: { maxWidth: 400, margin: '0 auto', display: 'block' } },
+      // Title
+      React.createElement('text', { x: W/2, y: 16, textAnchor: 'middle', fontSize: 12, fontWeight: 'bold', fill: '#374151' }, title),
+      // Grid
+      gridLines.map((g, i) => React.createElement('g', { key: 'g'+i },
+        React.createElement('line', { x1: ml, y1: g.y, x2: W-mr, y2: g.y, stroke: '#e5e7eb', strokeDasharray: '4,4' }),
+        React.createElement('text', { x: ml-4, y: g.y+3, textAnchor: 'end', fontSize: 9, fill: '#9ca3af' }, g.label)
+      )),
+      // Threshold
+      thresholdValue !== null && thresholdValue !== undefined && React.createElement('g', null,
+        React.createElement('line', { x1: ml, y1: toY(thresholdValue), x2: W-mr, y2: toY(thresholdValue), stroke: '#dc2626', strokeWidth: 1.5, strokeDasharray: '6,4', opacity: 0.6 }),
+        React.createElement('text', { x: W-mr, y: toY(thresholdValue)-4, textAnchor: 'end', fontSize: 8, fill: '#dc2626' }, thresholdLabel || ('基準: ' + thresholdValue))
+      ),
+      // Lines & dots
+      isMulti ? series.map((s, si) => {
+        const segs = buildSegments(s.data);
+        const pts = s.data.map((d, i) => d.value !== null && d.value !== undefined && !isNaN(d.value) ? { x: toX(i), y: toY(d.value) } : null).filter(Boolean);
+        return React.createElement('g', { key: 'series'+si },
+          segs.map((seg, j) => React.createElement('polyline', { key: 'seg'+j, points: seg.map(p => p.x+','+p.y).join(' '), fill: 'none', stroke: s.color, strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' })),
+          pts.map((p, j) => React.createElement('circle', { key: 'dot'+j, cx: p.x, cy: p.y, r: 3.5, fill: s.color, stroke: 'white', strokeWidth: 1.5 }))
+        );
+      }) : (() => {
+        const segs = buildSegments(data);
+        const pts = data.map((d, i) => d.value !== null && d.value !== undefined && !isNaN(d.value) ? { x: toX(i), y: toY(d.value), positive: d.positive } : null).filter(Boolean);
+        return React.createElement('g', null,
+          segs.map((seg, j) => React.createElement('polyline', { key: 'seg'+j, points: seg.map(p => p.x+','+p.y).join(' '), fill: 'none', stroke: color || '#0d9488', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round' })),
+          pts.map((p, j) => React.createElement('circle', { key: 'dot'+j, cx: p.x, cy: p.y, r: 4, fill: p.positive ? '#dc2626' : (color || '#0d9488'), stroke: 'white', strokeWidth: 1.5 }))
+        );
+      })(),
+      // Date labels
+      dateLabels.map((d, i) => React.createElement('text', { key: 'dl'+i, x: d.x, y: H-mb+14, textAnchor: 'middle', fontSize: 8, fill: '#9ca3af' }, d.label)),
+      // Unit label
+      unit && React.createElement('text', { x: ml-4, y: mt-6, textAnchor: 'end', fontSize: 8, fill: '#9ca3af' }, '('+unit+')')
+    ),
+    // Legend for multi-line
+    isMulti && React.createElement('div', { className: 'flex justify-center gap-4 mt-1' },
+      series.map(s => React.createElement('div', { key: s.label, className: 'flex items-center gap-1' },
+        React.createElement('span', { className: 'inline-block w-3 h-3 rounded-full', style: { background: s.color } }),
+        React.createElement('span', { className: 'text-xs text-gray-500' }, s.label)
+      ))
+    )
+  );
+}
+
+// --- KaikaProgressGraphs (低下症 経過グラフ) ---
+function KaikaProgressGraphs({ assessments }) {
+  const [selected, setSelected] = useState('K1');
+  const tabs = [
+    { key: 'K1', label: 'TCI' }, { key: 'K2', label: '水分' }, { key: 'K3', label: '咬合' },
+    { key: 'K4', label: 'ODK' }, { key: 'K5', label: '舌圧' }, { key: 'K6', label: '咀嚼' }, { key: 'K7', label: 'EAT-10' }
+  ];
+  const cfg = {
+    K1: { title: 'TCI（舌苔付着度）', threshold: 50, dir: 'above', unit: '%', color: '#6366f1', yMin: 0, yMax: 100, extract: a => { const v = a.kaikaItems?.K1?.value; return v !== '' && v !== undefined ? parseFloat(v) : null; } },
+    K2: { title: '口腔水分計', threshold: 27, dir: 'below', unit: '', color: '#3b82f6', yMin: 0, extract: a => { const v = a.kaikaItems?.K2?.value; return v !== '' && v !== undefined ? parseFloat(v) : null; } },
+    K3: { title: '咬合力', threshold: 200, dir: 'below', unit: 'N', color: '#10b981', yMin: 0, extract: a => { const d = a.kaikaItems?.K3; if (!d || d.value === '' || d.value === undefined) return null; return parseFloat(d.value); } },
+    K5: { title: '舌圧', threshold: 20, dir: 'below', unit: 'kPa', color: '#ec4899', yMin: 0, extract: a => { const v = a.kaikaItems?.K5?.value; return v !== '' && v !== undefined ? parseFloat(v) : null; } },
+    K6: { title: '咀嚼機能（グルコース）', threshold: 100, dir: 'below', unit: 'mg/dL', color: '#f97316', yMin: 0, extract: a => { const v = a.kaikaItems?.K6?.value; return v !== '' && v !== undefined ? parseFloat(v) : null; } },
+    K7: { title: 'EAT-10 嚥下スコア', threshold: 3, dir: 'above', unit: '点', color: '#14b8a6', yMin: 0, yMax: 40, extract: a => { const v = a.kaikaItems?.K7?.value; return v !== '' && v !== undefined ? parseFloat(v) : null; } },
+  };
+
+  const chartData = useMemo(() => {
+    if (selected === 'K4') {
+      const extractK4 = (sub) => assessments.map(a => {
+        const d = a.kaikaItems?.K4;
+        const v = d ? d[sub] : null;
+        return { date: a.date, value: (v !== '' && v !== undefined && v !== null) ? parseFloat(v) : null };
+      });
+      return { isK4: true, series: [
+        { data: extractK4('pa'), color: '#ef4444', label: '/pa/' },
+        { data: extractK4('ta'), color: '#f59e0b', label: '/ta/' },
+        { data: extractK4('ka'), color: '#8b5cf6', label: '/ka/' },
+      ]};
+    }
+    const c = cfg[selected];
+    if (!c) return { isK4: false, data: [] };
+    return { isK4: false, data: assessments.map(a => {
+      const val = c.extract(a);
+      const positive = a.kaikaItems?.[selected]?.positive || false;
+      return { date: a.date, value: val, positive };
+    })};
+  }, [selected, assessments]);
+
+  const c = cfg[selected];
+
+  return React.createElement('div', { className: 'bg-white rounded-2xl card-shadow p-4 mb-4' },
+    React.createElement('div', { className: 'text-sm font-bold text-gray-700 mb-3 text-center' }, '📈 経過記録グラフ'),
+    React.createElement('div', { className: 'flex overflow-x-auto gap-1 mb-3 pb-1' },
+      tabs.map(t => React.createElement('button', {
+        key: t.key, onClick: () => setSelected(t.key),
+        className: `px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap ${selected === t.key ? 'bg-teal-500 text-white' : 'bg-gray-100 text-gray-600'}`
+      }, t.key + ' ' + t.label))
+    ),
+    chartData.isK4
+      ? React.createElement(ProgressLineChart, { series: chartData.series, title: 'ODK（パタカ）', thresholdValue: 6, thresholdLabel: '基準: 6.0回/秒', unit: '回/秒', yMin: 0 })
+      : c && React.createElement(ProgressLineChart, { data: chartData.data, title: c.title, thresholdValue: c.threshold, thresholdLabel: '基準: ' + c.threshold + c.unit, thresholdDirection: c.dir, color: c.color, unit: c.unit, yMin: c.yMin, yMax: c.yMax }),
+    // Data table
+    React.createElement('div', { className: 'mt-3 overflow-x-auto' },
+      React.createElement('table', { className: 'w-full text-xs' },
+        React.createElement('thead', null, React.createElement('tr', { className: 'border-b border-gray-200' },
+          React.createElement('th', { className: 'py-1 px-2 text-left text-gray-500' }, '日付'),
+          React.createElement('th', { className: 'py-1 px-2 text-right text-gray-500' }, '測定値'),
+          React.createElement('th', { className: 'py-1 px-2 text-center text-gray-500' }, '判定')
+        )),
+        React.createElement('tbody', null,
+          (selected === 'K4' ? chartData.series[0].data.map((d, i) => {
+            const ki = assessments[i]?.kaikaItems?.K4;
+            const pa = ki?.pa, ta = ki?.ta, ka = ki?.ka;
+            const valStr = pa !== undefined && pa !== '' ? `pa:${pa} ta:${ta} ka:${ka}` : '-';
+            return React.createElement('tr', { key: i, className: 'border-b border-gray-50' },
+              React.createElement('td', { className: 'py-1 px-2 text-gray-600' }, formatDate(d.date)),
+              React.createElement('td', { className: 'py-1 px-2 text-right font-medium' }, valStr),
+              React.createElement('td', { className: 'py-1 px-2 text-center' }, assessments[i]?.kaikaItems?.K4?.positive
+                ? React.createElement('span', { className: 'text-red-500' }, '該当')
+                : React.createElement('span', { className: 'text-green-600' }, '非該当'))
+            );
+          }) : (chartData.data || []).map((d, i) => React.createElement('tr', { key: i, className: 'border-b border-gray-50' },
+            React.createElement('td', { className: 'py-1 px-2 text-gray-600' }, formatDate(d.date)),
+            React.createElement('td', { className: 'py-1 px-2 text-right font-medium' }, d.value !== null ? d.value + (c?.unit || '') : '-'),
+            React.createElement('td', { className: 'py-1 px-2 text-center' }, d.positive
+              ? React.createElement('span', { className: 'text-red-500' }, '該当')
+              : React.createElement('span', { className: 'text-green-600' }, '非該当'))
+          )))
+        )
+      )
+    )
+  );
+}
+
+// --- HattatsuProgressGraphs (発達不全症 経過グラフ) ---
+function HattatsuProgressGraphs({ assessments }) {
+  const [selected, setSelected] = useState('checked');
+  const tabs = [
+    { key: 'checked', label: '該当数' }, { key: 'lip', label: '口唇閉鎖力' }, { key: 'tongue', label: '舌圧' }
+  ];
+  const countChecked = (a) => {
+    const checks = a.checks || {};
+    return Object.entries(checks).filter(([k, v]) => {
+      if (k === 'C11') return v && v.length > 0;
+      if (k === 'C13') return v === 'underweight' || v === 'overweight';
+      if (k === 'C17') return v && v.length > 0;
+      if (k === 'C11_has' || k === 'C13_patient') return false;
+      return v === true;
+    }).length;
+  };
+  const cfg = {
+    checked: { title: '該当項目数の推移', threshold: null, unit: '項目', color: '#ef4444', yMin: 0, yMax: 17, extract: a => countChecked(a) },
+    lip: { title: '口唇閉鎖力の推移', threshold: null, unit: 'N', color: '#3b82f6', yMin: 0, extract: a => a.lipForce ? parseFloat(a.lipForce) : null },
+    tongue: { title: '舌圧の推移', threshold: null, unit: 'kPa', color: '#8b5cf6', yMin: 0, extract: a => a.tonguePressure ? parseFloat(a.tonguePressure) : null },
+  };
+  const c = cfg[selected];
+  const chartData = useMemo(() => assessments.map(a => ({
+    date: a.date, value: c.extract(a), positive: false
+  })), [selected, assessments]);
+
+  return React.createElement('div', { className: 'bg-white rounded-2xl card-shadow p-4 mb-4' },
+    React.createElement('div', { className: 'text-sm font-bold text-gray-700 mb-3 text-center' }, '📈 経過記録グラフ'),
+    React.createElement('div', { className: 'flex overflow-x-auto gap-1 mb-3 pb-1' },
+      tabs.map(t => React.createElement('button', {
+        key: t.key, onClick: () => setSelected(t.key),
+        className: `px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap ${selected === t.key ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600'}`
+      }, t.label))
+    ),
+    React.createElement(ProgressLineChart, { data: chartData, title: c.title, thresholdValue: c.threshold, color: c.color, unit: c.unit, yMin: c.yMin, yMax: c.yMax }),
+    React.createElement('div', { className: 'mt-3 overflow-x-auto' },
+      React.createElement('table', { className: 'w-full text-xs' },
+        React.createElement('thead', null, React.createElement('tr', { className: 'border-b border-gray-200' },
+          React.createElement('th', { className: 'py-1 px-2 text-left text-gray-500' }, '日付'),
+          React.createElement('th', { className: 'py-1 px-2 text-right text-gray-500' }, '測定値')
+        )),
+        React.createElement('tbody', null,
+          chartData.map((d, i) => React.createElement('tr', { key: i, className: 'border-b border-gray-50' },
+            React.createElement('td', { className: 'py-1 px-2 text-gray-600' }, formatDate(d.date)),
+            React.createElement('td', { className: 'py-1 px-2 text-right font-medium' }, d.value !== null ? d.value + (c.unit || '') : '-')
+          ))
+        )
+      )
+    )
+  );
+}
+
 function KaikaAssessmentForm({ patient, existingAssessment, onSave, onCancel }) {
   const initItems = existingAssessment ? existingAssessment.kaikaItems : {
     K1: { value: '', tongueScores: [0,0,0,0,0,0,0,0,0], positive: false },
@@ -1908,6 +2139,12 @@ function PatientDetail({ patient, assessments, onBack, onEdit, onNewAssessment, 
         <button onClick={onNewAssessment} className="w-full bg-primary-600 text-white py-4 rounded-2xl font-bold text-base mb-4 active:bg-primary-700 transition card-shadow">
           ＋ 新しい評価を開始
         </button>
+
+        {patientAssessments.length >= 2 && (
+          mode === 'kaika'
+            ? <KaikaProgressGraphs assessments={[...patientAssessments].reverse()} />
+            : <HattatsuProgressGraphs assessments={[...patientAssessments].reverse()} />
+        )}
 
         <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 px-1">評価履歴</h3>
         {patientAssessments.length === 0 ? (
