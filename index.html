@@ -1844,7 +1844,7 @@ function ManagementPlan({ patient, assessment, onSave, onBack, onPrint, onReferr
         <div className="flex gap-2">
           <LongPressButton onAction={handleSave} className={mode === 'kaika' ? "bg-teal-600 text-white px-4 py-2 rounded-xl font-medium text-sm" : "bg-primary-600 text-white px-4 py-2 rounded-xl font-medium text-sm"} label="保存"/>
           {saveMsg && <span className="text-green-600 text-xs font-medium self-center">保存済み</span>}
-          <LongPressButton onAction={()=>{handleSave();onPrint();}} className="bg-dental-600 text-white px-4 py-2 rounded-xl font-medium text-sm" label="PDF出力"/>
+          <button onClick={()=>{handleSave();onPrint();}} className="toggle-btn bg-dental-600 text-white px-4 py-2 rounded-xl font-medium text-sm">PDF出力</button>
           <button onClick={()=>{handleSave();onReferral();}} className="toggle-btn bg-amber-500 text-white px-3 py-2 rounded-xl font-medium text-xs">紹介状</button>
         </div>
       }/>
