@@ -996,6 +996,80 @@ function OdkTimer({ sound, onComplete, label }) {
   );
 }
 
+// --- RSST 30秒タイマー ---
+function RsstTimer({ onComplete }) {
+  const [phase, setPhase] = useState('idle');
+  const [timeLeft, setTimeLeft] = useState(30);
+  const [count, setCount] = useState(0);
+  const timerIdRef = useRef(null);
+  const startTimeRef = useRef(null);
+  const countRef = useRef(0);
+
+  useEffect(() => { return () => { if (timerIdRef.current) clearInterval(timerIdRef.current); }; }, []);
+
+  const playBeep = () => {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.frequency.value = 880; gain.gain.value = 0.3;
+      osc.start(); osc.stop(ctx.currentTime + 0.5);
+    } catch(e) {}
+  };
+
+  const startTimer = () => {
+    setPhase('running'); setCount(0); countRef.current = 0; setTimeLeft(30);
+    startTimeRef.current = Date.now();
+    timerIdRef.current = setInterval(() => {
+      const elapsed = (Date.now() - startTimeRef.current) / 1000;
+      const remaining = Math.max(0, 30 - elapsed);
+      setTimeLeft(remaining);
+      if (remaining <= 0) {
+        clearInterval(timerIdRef.current); timerIdRef.current = null;
+        setPhase('done'); playBeep(); onComplete(countRef.current);
+      }
+    }, 50);
+  };
+
+  const handleCount = () => { if (phase === 'running') { countRef.current += 1; setCount(countRef.current); } };
+  const reset = () => { if (timerIdRef.current) clearInterval(timerIdRef.current); setPhase('idle'); setTimeLeft(30); setCount(0); countRef.current = 0; };
+
+  return (
+    <div className="bg-gray-50 rounded-xl p-3 text-center">
+      <div className="text-xs font-bold text-gray-500 mb-2">RSST（30秒間の嚥下回数）</div>
+      {phase === 'idle' && (
+        <button onClick={startTimer} className="bg-teal-500 text-white px-6 py-3 rounded-xl font-bold text-sm active:bg-teal-600">
+          🕐 30秒タイマー開始
+        </button>
+      )}
+      {phase === 'running' && (
+        <div>
+          <div className="text-3xl font-bold text-teal-600 mb-2">{timeLeft.toFixed(1)}秒</div>
+          <div className="w-full bg-gray-200 rounded-full h-2 mb-3">
+            <div className="bg-teal-500 h-2 rounded-full transition-all" style={{width:`${(30-timeLeft)/30*100}%`}}/>
+          </div>
+          <button onClick={handleCount}
+            className="w-full py-8 bg-teal-600 text-white rounded-2xl font-bold text-2xl active:bg-teal-700 select-none"
+            style={{WebkitUserSelect:'none',userSelect:'none'}}>
+            嚥下カウント +1（{count}回）
+          </button>
+          <div className="text-xs text-gray-400 mt-2">患者が唾液を飲み込むたびにタップ</div>
+        </div>
+      )}
+      {phase === 'done' && (
+        <div>
+          <div className="text-sm text-gray-600 mb-1">測定結果</div>
+          <div className={`text-2xl font-bold ${count < 3 ? 'text-red-500' : 'text-teal-600'}`}>{count}回/30秒</div>
+          {count < 3 && <div className="text-xs text-red-400 mt-1">基準値（3回）未満 → 該当</div>}
+          {count >= 3 && <div className="text-xs text-green-500 mt-1">基準値（3回）以上 → 非該当</div>}
+          <button onClick={reset} className="mt-2 text-xs text-gray-400 underline">やり直す</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // --- Kaika Radar Chart ---
 function KaikaRadarChart({ items }) {
   const labels = [
@@ -1161,7 +1235,8 @@ function KaikaProgressGraphs({ assessments }) {
   const [selected, setSelected] = useState('K1');
   const tabs = [
     { key: 'K1', label: 'TCI' }, { key: 'K2', label: '水分' }, { key: 'K3', label: '咬合' },
-    { key: 'K4', label: 'ODK' }, { key: 'K5', label: '舌圧' }, { key: 'K6', label: '咀嚼' }, { key: 'K7', label: 'EAT-10' }
+    { key: 'K4', label: 'ODK' }, { key: 'K5', label: '舌圧' }, { key: 'K6', label: '咀嚼' },
+    { key: 'K7', label: 'EAT-10' }, { key: 'RSST', label: 'RSST' }
   ];
   const cfg = {
     K1: { title: 'TCI（舌苔付着度）', threshold: 50, dir: 'above', unit: '%', color: '#6366f1', yMin: 0, yMax: 100, extract: a => { const v = a.kaikaItems?.K1?.value; return v !== '' && v !== undefined ? parseFloat(v) : null; } },
@@ -1169,7 +1244,8 @@ function KaikaProgressGraphs({ assessments }) {
     K3: { title: '咬合力', threshold: 200, dir: 'below', unit: 'N', color: '#10b981', yMin: 0, extract: a => { const d = a.kaikaItems?.K3; if (!d || d.value === '' || d.value === undefined) return null; return parseFloat(d.value); } },
     K5: { title: '舌圧', threshold: 20, dir: 'below', unit: 'kPa', color: '#ec4899', yMin: 0, extract: a => { const v = a.kaikaItems?.K5?.value; return v !== '' && v !== undefined ? parseFloat(v) : null; } },
     K6: { title: '咀嚼機能（グルコース）', threshold: 100, dir: 'below', unit: 'mg/dL', color: '#f97316', yMin: 0, extract: a => { const v = a.kaikaItems?.K6?.value; return v !== '' && v !== undefined ? parseFloat(v) : null; } },
-    K7: { title: 'EAT-10 嚥下スコア', threshold: 3, dir: 'above', unit: '点', color: '#14b8a6', yMin: 0, yMax: 40, extract: a => { const v = a.kaikaItems?.K7?.value; return v !== '' && v !== undefined ? parseFloat(v) : null; } },
+    K7: { title: 'EAT-10 嚥下スコア', threshold: 3, dir: 'above', unit: '点', color: '#14b8a6', yMin: 0, yMax: 40, extract: a => { const d = a.kaikaItems?.K7; if (!d || d.subtype === 'rsst') return null; return d.value !== '' && d.value !== undefined ? parseFloat(d.value) : null; } },
+    RSST: { title: 'RSST（反復唾液嚥下）', threshold: 3, dir: 'below', unit: '回', color: '#06b6d4', yMin: 0, yMax: 10, extract: a => { const d = a.kaikaItems?.K7; if (!d || d.subtype !== 'rsst') return null; return d.value !== '' && d.value !== undefined ? parseFloat(d.value) : null; } },
   };
 
   const chartData = useMemo(() => {
@@ -1187,9 +1263,10 @@ function KaikaProgressGraphs({ assessments }) {
     }
     const c = cfg[selected];
     if (!c) return { isK4: false, data: [] };
+    const itemKey = selected === 'RSST' ? 'K7' : selected;
     return { isK4: false, data: assessments.map(a => {
       const val = c.extract(a);
-      const positive = a.kaikaItems?.[selected]?.positive || false;
+      const positive = a.kaikaItems?.[itemKey]?.positive || false;
       return { date: a.date, value: val, positive };
     })};
   }, [selected, assessments]);
@@ -1639,9 +1716,17 @@ function KaikaAssessmentForm({ patient, existingAssessment, onSave, onCancel }) 
                       </div>
                     </div>
                   ) : (
-                    <input type="number" value={d.value} onChange={e => updateField('K7','value',e.target.value)}
-                      className="w-full px-3 py-3 bg-gray-50 border border-gray-200 rounded-xl text-base"
-                      placeholder="RSST回数（回/30秒）"/>
+                    <div>
+                      <RsstTimer onComplete={(cnt) => updateField('K7','value',cnt.toString())} />
+                      <div className="flex items-center gap-2 mt-2">
+                        <span className="text-xs text-gray-500">手入力:</span>
+                        <input type="number" value={d.value} onChange={e => updateField('K7','value',e.target.value)}
+                          className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-base"
+                          placeholder="回数"/>
+                        <span className="text-sm text-gray-500">回/30秒</span>
+                      </div>
+                      <JudgeBadge value={d.value} unit="回/30秒" positive={d.positive}/>
+                    </div>
                   )}
                 </div>
               )}
