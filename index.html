@@ -1239,9 +1239,6 @@ function KaikaAssessmentForm({ patient, existingAssessment, onSave, onCancel }) 
           {isKaika ? ' → 口腔機能低下症に該当' : ' （3項目以上で該当）'}
         </div>
 
-        {/* レーダーチャート */}
-        <KaikaRadarChart items={items}/>
-
         {KAIKA_ITEMS.map((ki) => {
           const d = items[ki.code];
           return (
@@ -1426,6 +1423,9 @@ function KaikaAssessmentForm({ patient, existingAssessment, onSave, onCancel }) 
           <textarea value={notes} onChange={e=>setNotes(e.target.value)}
             className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm" rows={2} placeholder="特記事項"/>
         </div>
+
+        {/* レーダーチャート */}
+        <KaikaRadarChart items={items}/>
       </div>
     </div>
   );
