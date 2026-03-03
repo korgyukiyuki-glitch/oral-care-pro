@@ -191,12 +191,21 @@ function calcRohrer(weightKg, heightCm) {
   return ((weightKg * 10000000) / (heightCm * heightCm * heightCm)).toFixed(1);
 }
 
-function getBodyStatus(index, isKaup) {
+function calcBMI(weightKg, heightCm) {
+  if (!weightKg || !heightCm) return null;
+  return ((weightKg * 10000) / (heightCm * heightCm)).toFixed(1);
+}
+
+function getBodyStatus(index, type) {
   if (!index) return 'unknown';
   const v = parseFloat(index);
-  if (isKaup) {
+  if (type === 'kaup') {
     if (v < 15) return 'underweight';
     if (v > 18) return 'overweight';
+    return 'normal';
+  } else if (type === 'bmi') {
+    if (v < 18.5) return 'underweight';
+    if (v > 25) return 'overweight';
     return 'normal';
   } else {
     if (v < 115) return 'underweight';
@@ -612,7 +621,7 @@ function PatientList({ patients, assessments, onSelect, onAdd, onRestore, onHome
 }
 
 // --- Patient Form ---
-function PatientForm({ patient, onSave, onCancel }) {
+function PatientForm({ patient, onSave, onCancel, mode }) {
   const initPatient = patient || {
     id: generateId(), patientId:'', name:'', birthDate:'', sex:'', weight:'', height:'',
     guardianName:'', contact:'', doctor:'', firstVisitDate: new Date().toISOString().split('T')[0]
@@ -622,7 +631,10 @@ function PatientForm({ patient, onSave, onCancel }) {
   const set = (k,v) => setForm(prev => ({...prev, [k]:v}));
   const age = calcAge(form.birthDate);
   const isKaup = age !== null && age < 6;
-  const idx = isKaup ? calcKaup(parseFloat(form.weight), parseFloat(form.height)) : calcRohrer(parseFloat(form.weight), parseFloat(form.height));
+  const isAdult = mode === 'kaika';
+  const idx = isAdult ? calcBMI(parseFloat(form.weight), parseFloat(form.height)) : isKaup ? calcKaup(parseFloat(form.weight), parseFloat(form.height)) : calcRohrer(parseFloat(form.weight), parseFloat(form.height));
+  const idxType = isAdult ? 'bmi' : isKaup ? 'kaup' : 'rohrer';
+  const idxLabel = isAdult ? 'BMI' : isKaup ? 'カウプ指数' : 'ローレル指数';
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -660,9 +672,9 @@ function PatientForm({ patient, onSave, onCancel }) {
             <Field label="身長 (cm)" half><input type="number" step="0.1" value={form.height} onChange={e=>set('height',e.target.value)} className={inputCls}/></Field>
           </div>
           {idx && (
-            <div className={`text-sm font-medium rounded-lg px-3 py-2 ${getBodyStatus(idx,isKaup)==='normal'?'bg-green-50 text-green-700':getBodyStatus(idx,isKaup)==='underweight'?'bg-yellow-50 text-yellow-700':'bg-red-50 text-red-700'}`}>
-              {isKaup ? 'カウプ指数' : 'ローレル指数'}: {idx}
-              {getBodyStatus(idx,isKaup)==='normal'?' （正常）':getBodyStatus(idx,isKaup)==='underweight'?' （やせ傾向）':' （肥満傾向）'}
+            <div className={`text-sm font-medium rounded-lg px-3 py-2 ${getBodyStatus(idx,idxType)==='normal'?'bg-green-50 text-green-700':getBodyStatus(idx,idxType)==='underweight'?'bg-yellow-50 text-yellow-700':'bg-red-50 text-red-700'}`}>
+              {idxLabel}: {idx}
+              {getBodyStatus(idx,idxType)==='normal'?' （正常）':getBodyStatus(idx,idxType)==='underweight'?' （やせ傾向）':' （肥満傾向）'}
             </div>
           )}
         </div>
@@ -685,7 +697,8 @@ function AssessmentForm({ patient, existingAssessment, onSave, onCancel }) {
   const age = calcAge(patient.birthDate);
   const isKaup = age !== null && age < 6;
   const idx = isKaup ? calcKaup(parseFloat(patient.weight), parseFloat(patient.height)) : calcRohrer(parseFloat(patient.weight), parseFloat(patient.height));
-  const bodyStatus = getBodyStatus(idx, isKaup);
+  const idxType = isKaup ? 'kaup' : 'rohrer';
+  const bodyStatus = getBodyStatus(idx, idxType);
 
   const [checks, setChecks] = useState(existingAssessment?.checks || {
     C1:false,C2:false,C3:false,C4:false,C5:false,C6:false,C7:false,C8:false,
@@ -1916,7 +1929,9 @@ function ManagementPlan({ patient, assessment, onSave, onBack, onPrint, onReferr
 function PrintView({ patient, assessment, onClose, mode }) {
   const age = calcAge(patient.birthDate);
   const isKaup = age !== null && age < 6;
-  const idx = isKaup ? calcKaup(parseFloat(patient.weight), parseFloat(patient.height)) : calcRohrer(parseFloat(patient.weight), parseFloat(patient.height));
+  const isAdult = mode === 'kaika';
+  const idx = isAdult ? calcBMI(parseFloat(patient.weight), parseFloat(patient.height)) : isKaup ? calcKaup(parseFloat(patient.weight), parseFloat(patient.height)) : calcRohrer(parseFloat(patient.weight), parseFloat(patient.height));
+  const idxLabel = isAdult ? 'BMI' : isKaup ? 'カウプ指数' : 'ローレル指数';
   const plans = assessment.plans || {};
   const checkedCodes = Object.keys(plans).sort((a,b) => {
     if (mode === 'kaika') {
@@ -2085,7 +2100,7 @@ function PrintView({ patient, assessment, onClose, mode }) {
                   <td style={phStyle}>年齢</td><td style={pStyle}>{age}歳</td></tr>
               <tr><td style={phStyle}>体重</td><td style={pStyle}>{patient.weight} kg</td>
                   <td style={phStyle}>身長</td><td style={pStyle}>{patient.height} cm</td></tr>
-              <tr><td style={phStyle}>{isKaup?'カウプ指数':'ローレル指数'}</td><td style={pStyle}>{idx || '-'}</td>
+              <tr><td style={phStyle}>{idxLabel}</td><td style={pStyle}>{idx || '-'}</td>
                   <td style={phStyle}>口唇閉鎖力</td><td style={pStyle}>{assessment.lipForce ? assessment.lipForce+' N' : '-'}</td></tr>
               <tr><td style={phStyle}>舌圧</td><td style={pStyle}>{assessment.tonguePressure ? assessment.tonguePressure+' kPa' : '-'}</td>
                   <td style={phStyle}>担当医</td><td style={pStyle}>{patient.doctor || '-'}</td></tr>
@@ -3142,7 +3157,7 @@ function App() {
   }
 
   if (page === 'form') {
-    return <PatientForm patient={editingPatient} onSave={savePatient} onCancel={()=>{
+    return <PatientForm patient={editingPatient} mode={mode} onSave={savePatient} onCancel={()=>{
       if(currentPatient) setPage('detail'); else setPage('list');
     }}/>;
   }
