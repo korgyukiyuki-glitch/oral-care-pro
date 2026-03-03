@@ -144,7 +144,7 @@ const PLAN_TEMPLATES_KAIKA = {
 };
 
 // ==================== 小児スクリーニング基準値 ====================
-const TONGUE_PRESSURE_CUTOFF = { 4:4.0, 5:9.0, 6:12.0, 7:17.0, 8:24.0, 9:24.0, 10:26.0, 11:26.0, 12:31.0 };
+const TONGUE_PRESSURE_CUTOFF = { 3:4.0, 4:9.0, 5:12.0, 6:17.0, 7:24.0, 8:24.0, 9:26.0, 10:26.0, 11:31.0, 12:31.0 };
 const LIP_FORCE_1SD = {
   M: { 3:2.1, 4:3.0, 5:4.1, 6:5.5, 7:6.6, 8:6.5, 9:6.0, 10:5.7, 11:5.8, 12:6.9, 13:6.9, 14:6.9, 15:10.5, 16:10.5, 17:10.5, 18:11.6 },
   F: { 3:1.9, 4:2.8, 5:3.8, 6:4.6, 7:5.1, 8:5.0, 9:4.7, 10:4.6, 11:5.3, 12:6.1, 13:6.1, 14:6.1, 15:9.6, 16:9.6, 17:9.6, 18:10.6 }
@@ -156,7 +156,7 @@ function getLipThreshold(age, sex) {
   return table[age] || table[Math.min(age, 18)];
 }
 function getTongueThreshold(age) {
-  if (age <= 4) return TONGUE_PRESSURE_CUTOFF[4];
+  if (age <= 3) return TONGUE_PRESSURE_CUTOFF[3];
   if (age >= 12) return TONGUE_PRESSURE_CUTOFF[12];
   return TONGUE_PRESSURE_CUTOFF[age] || TONGUE_PRESSURE_CUTOFF[Math.min(age, 12)];
 }
