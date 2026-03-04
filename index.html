@@ -2676,8 +2676,8 @@ function BillingFlowChart({ patient, assessments, mode, onBack }) {
     }
     const examItems = mode === 'kaika' ? KAIKA_EXAM : HATTATSU_EXAM;
     let items = [];
-    // 検査料（初回・再評価時）
-    if (visitType === 'first' || visitType === 'reeval') {
+    // 検査料（初回・再評価・継続管理で疑いの場合）
+    if (visitType === 'first' || visitType === 'reeval' || (visitType === 'monthly' && diagLevel === 'suspected')) {
       const ungrouped = examItems.filter(i => !i.group);
       const exam3m = examItems.filter(i => i.group === 'exam3m');
       if (exam3m.length > 0) {
