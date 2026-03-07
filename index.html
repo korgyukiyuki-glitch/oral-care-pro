@@ -1778,7 +1778,7 @@ function KaikaAssessmentForm({ patient, existingAssessment, onSave, onCancel }) 
   );
 }
 
-function ManagementPlan({ patient, assessment, onSave, onBack, onPrint, onReferral, mode }) {
+function ManagementPlan({ patient, assessment, onSave, onBack, onClose, onPrint, onReferral, mode }) {
   const [plans, setPlans] = useState(() => {
     if (mode === 'kaika') {
       const initial = {};
@@ -1846,6 +1846,7 @@ function ManagementPlan({ patient, assessment, onSave, onBack, onPrint, onReferr
           {saveMsg && <span className="text-green-600 text-xs font-medium self-center">保存済み</span>}
           <button onClick={()=>{handleSave();onPrint();}} className="toggle-btn bg-dental-600 text-white px-4 py-2 rounded-xl font-medium text-sm">PDF出力</button>
           <button onClick={()=>{handleSave();onReferral();}} className="toggle-btn bg-amber-500 text-white px-3 py-2 rounded-xl font-medium text-xs">紹介状</button>
+          {onClose && <button onClick={onClose} className="toggle-btn bg-gray-200 text-gray-600 px-3 py-2 rounded-xl font-medium text-xs">✕ 閉じる</button>}
         </div>
       }/>
       {saveMsg && (
@@ -3316,7 +3317,7 @@ function App() {
 
   if (page === 'plan' && currentPatient && currentAssessment) {
     return <ManagementPlan patient={currentPatient} assessment={currentAssessment}
-      onSave={savePlan} onBack={()=>setPage('detail')} onPrint={()=>setPage('print')} onReferral={()=>setPage('referral')} mode={mode}/>;
+      onSave={savePlan} onBack={()=>setPage('assessment')} onClose={()=>setPage('detail')} onPrint={()=>setPage('print')} onReferral={()=>setPage('referral')} mode={mode}/>;
   }
 
   return <PatientList patients={data.patients.filter(p => (p.mode || 'hattatsu') === mode)} assessments={data.assessments}
