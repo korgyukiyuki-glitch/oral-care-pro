@@ -3386,28 +3386,34 @@ function App() {
 ReactDOM.createRoot(document.getElementById('root')).render(<App />);
 </script>
 <script>
-// Service Worker registration & auto-update
+// Service Worker registration & safe auto-update
+// Updates only apply when the app is reopened (not during active use)
 if ('serviceWorker' in navigator) {
+  let updateReady = false;
   navigator.serviceWorker.register('sw.js').then(reg => {
-    // Check for updates periodically (every 60 seconds)
-    setInterval(() => reg.update(), 60000);
-    // Check on visibility change (when app comes to foreground)
-    document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') reg.update();
-    });
-    // Auto-reload when new SW is waiting
+    // When a new SW is found, mark update as ready but don't reload yet
     reg.addEventListener('updatefound', () => {
       const newWorker = reg.installing;
       if (newWorker) {
         newWorker.addEventListener('statechange', () => {
-          if (newWorker.state === 'activated' && navigator.serviceWorker.controller) {
-            window.location.reload();
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            updateReady = true;
           }
         });
       }
     });
+    // Check for updates when app comes back to foreground
+    // If an update is already waiting, apply it now (user just reopened the app)
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        reg.update();
+        if (updateReady || (reg.waiting && navigator.serviceWorker.controller)) {
+          reg.waiting?.postMessage('skipWaiting');
+        }
+      }
+    });
   });
-  // Reload when controller changes (new SW took over)
+  // Reload only when the new SW actually takes control
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     window.location.reload();
   });
