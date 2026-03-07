@@ -701,7 +701,7 @@ function AssessmentForm({ patient, existingAssessment, onSave, onCancel }) {
   const bodyStatus = getBodyStatus(idx, idxType);
 
   const [checks, setChecks] = useState(existingAssessment?.checks || {
-    C1:false,C2:false,C3:false,C4:false,C5:false,C6:false,C7:false,C8:false,
+    C1:false,C1_detail:'',C2:false,C3:false,C4:false,C5:false,C6:false,C7:false,C8:false,
     C9:false,C10:false,C11:[],C11_has:existingAssessment?.checks?.C11?.length > 0 ? true : null,C12:false,C13:bodyStatus,C13_patient:null,C14:false,C15:false,C16:false,C17:''
   });
   const [lipForce, setLipForce] = useState(existingAssessment?.lipForce || patient.screening?.lipForce || '');
@@ -825,6 +825,17 @@ function AssessmentForm({ patient, existingAssessment, onSave, onCancel }) {
                         </div>
                       )}
                     </div>
+                    {item.code === 'C1' && checks.C1 && (
+                      <div className="mt-2 w-full">
+                        <input
+                          type="text"
+                          value={checks.C1_detail || ''}
+                          onChange={e=>setChecks(prev=>({...prev,C1_detail:e.target.value}))}
+                          className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm"
+                          placeholder="遅れている歯の部位（例: 上右6、下左D）"
+                        />
+                      </div>
+                    )}
                     {item.inputType === 'freetext' && (
                       <div className="mt-2 w-full">
                         <textarea
