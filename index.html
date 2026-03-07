@@ -853,22 +853,13 @@ function AssessmentForm({ patient, existingAssessment, onSave, onCancel }) {
                     {item.code === 'C1' && checks.C1 && (
                       <div className="mt-3">
                         <div className="text-xs text-gray-500 mb-2">萌出が遅れている永久歯をタップ</div>
-                        <div className="bg-gray-50 rounded-xl p-3 border border-gray-200">
-                          <div className="flex items-center gap-1 mb-1">
-                            <span className="text-xs text-gray-400 w-6 text-right mr-1">右上</span>
-                            {['7','6','5','4','3','2','1'].map(t=>{const id='UR_'+t;return <button key={id} onClick={()=>toggleTooth(id)} className={`toggle-btn w-9 h-9 rounded-lg text-sm font-bold ${(checks.C1_teeth||[]).includes(id)?'bg-red-500 text-white':'bg-white border border-gray-300 text-gray-600'}`}>{t}</button>;})}
-                            <span className="text-gray-300 mx-0.5">|</span>
-                            {['1','2','3','4','5','6','7'].map(t=>{const id='UL_'+t;return <button key={id} onClick={()=>toggleTooth(id)} className={`toggle-btn w-9 h-9 rounded-lg text-sm font-bold ${(checks.C1_teeth||[]).includes(id)?'bg-red-500 text-white':'bg-white border border-gray-300 text-gray-600'}`}>{t}</button>;})}
-                            <span className="text-xs text-gray-400 w-6 ml-1">左上</span>
-                          </div>
-                          <div className="border-t border-gray-300 my-1"></div>
-                          <div className="flex items-center gap-1">
-                            <span className="text-xs text-gray-400 w-6 text-right mr-1">右下</span>
-                            {['7','6','5','4','3','2','1'].map(t=>{const id='LR_'+t;return <button key={id} onClick={()=>toggleTooth(id)} className={`toggle-btn w-9 h-9 rounded-lg text-sm font-bold ${(checks.C1_teeth||[]).includes(id)?'bg-red-500 text-white':'bg-white border border-gray-300 text-gray-600'}`}>{t}</button>;})}
-                            <span className="text-gray-300 mx-0.5">|</span>
-                            {['1','2','3','4','5','6','7'].map(t=>{const id='LL_'+t;return <button key={id} onClick={()=>toggleTooth(id)} className={`toggle-btn w-9 h-9 rounded-lg text-sm font-bold ${(checks.C1_teeth||[]).includes(id)?'bg-red-500 text-white':'bg-white border border-gray-300 text-gray-600'}`}>{t}</button>;})}
-                            <span className="text-xs text-gray-400 w-6 ml-1">左下</span>
-                          </div>
+                        <div className="bg-gray-50 rounded-xl p-3 border border-gray-200 space-y-1">
+                          {[{label:'右上',q:'UR'},{label:'左上',q:'UL'},{label:'右下',q:'LR'},{label:'左下',q:'LL'}].map(({label,q})=>(
+                            <div key={q} className="flex items-center gap-1">
+                              <span className="text-xs text-gray-500 font-bold w-8">{label}</span>
+                              {['1','2','3','4','5','6','7'].map(t=>{const id=q+'_'+t;return <button key={id} onClick={()=>toggleTooth(id)} className={`toggle-btn w-9 h-9 rounded-lg text-sm font-bold ${(checks.C1_teeth||[]).includes(id)?'bg-red-500 text-white':'bg-white border border-gray-300 text-gray-600'}`}>{t}</button>;})}
+                            </div>
+                          ))}
                         </div>
                         {(checks.C1_teeth||[]).length > 0 && (
                           <div className="mt-2 text-xs text-red-600 font-medium">選択中: {formatTeeth(checks.C1_teeth)}</div>
