@@ -94,6 +94,23 @@ const HABITS_LIST = [
   '抜けた前歯の隙間に舌を入れる','舌先を歯の裏側や歯の隙間に押しつける'
 ];
 
+const formatTeeth = (teeth) => {
+  if (!teeth || teeth.length === 0) return '';
+  const labels = { UR: '右上', UL: '左上', LR: '右下', LL: '左下' };
+  const order = ['UR', 'UL', 'LR', 'LL'];
+  const toothOrder = ['1','2','3','4','5','6','7','A','B','C','D','E'];
+  const sorted = [...teeth].sort((a, b) => {
+    const [qa, ta] = a.split('_');
+    const [qb, tb] = b.split('_');
+    if (qa !== qb) return order.indexOf(qa) - order.indexOf(qb);
+    return toothOrder.indexOf(ta) - toothOrder.indexOf(tb);
+  });
+  return sorted.map(t => {
+    const [quad, num] = t.split('_');
+    return labels[quad] + num;
+  }).join('、');
+};
+
 const CATEGORY_LABELS = {
   chew: '食べる機能（咀嚼）',
   swallow: '食べる機能（嚥下）',
@@ -701,7 +718,7 @@ function AssessmentForm({ patient, existingAssessment, onSave, onCancel }) {
   const bodyStatus = getBodyStatus(idx, idxType);
 
   const [checks, setChecks] = useState(existingAssessment?.checks || {
-    C1:false,C1_detail:'',C2:false,C3:false,C4:false,C5:false,C6:false,C7:false,C8:false,
+    C1:false,C1_teeth:[],C2:false,C3:false,C4:false,C5:false,C6:false,C7:false,C8:false,
     C9:false,C10:false,C11:[],C11_has:existingAssessment?.checks?.C11?.length > 0 ? true : null,C12:false,C13:bodyStatus,C13_patient:null,C14:false,C15:false,C16:false,C17:''
   });
   const [lipForce, setLipForce] = useState(existingAssessment?.lipForce || patient.screening?.lipForce || '');
@@ -731,6 +748,12 @@ function AssessmentForm({ patient, existingAssessment, onSave, onCancel }) {
   };
 
   const toggle = (code) => setChecks(prev => ({...prev, [code]: !prev[code]}));
+  const toggleTooth = (toothId) => {
+    setChecks(prev => {
+      const cur = prev.C1_teeth || [];
+      return {...prev, C1_teeth: cur.includes(toothId) ? cur.filter(t=>t!==toothId) : [...cur, toothId]};
+    });
+  };
   const toggleHabit = (habit) => {
     setChecks(prev => {
       const cur = prev.C11 || [];
@@ -826,14 +849,28 @@ function AssessmentForm({ patient, existingAssessment, onSave, onCancel }) {
                       )}
                     </div>
                     {item.code === 'C1' && checks.C1 && (
-                      <div className="mt-2 w-full">
-                        <input
-                          type="text"
-                          value={checks.C1_detail || ''}
-                          onChange={e=>setChecks(prev=>({...prev,C1_detail:e.target.value}))}
-                          className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm"
-                          placeholder="遅れている歯の部位（例: 上右6、下左D）"
-                        />
+                      <div className="mt-3">
+                        <div className="text-xs text-gray-500 mb-2">萌出が遅れている永久歯をタップ</div>
+                        <div className="bg-gray-50 rounded-xl p-3 border border-gray-200">
+                          <div className="flex items-center gap-1 mb-1">
+                            <span className="text-xs text-gray-400 w-6 text-right mr-1">右上</span>
+                            {['7','6','5','4','3','2','1'].map(t=>{const id='UR_'+t;return <button key={id} onClick={()=>toggleTooth(id)} className={`toggle-btn w-9 h-9 rounded-lg text-sm font-bold ${(checks.C1_teeth||[]).includes(id)?'bg-red-500 text-white':'bg-white border border-gray-300 text-gray-600'}`}>{t}</button>;})}
+                            <span className="text-gray-300 mx-0.5">|</span>
+                            {['1','2','3','4','5','6','7'].map(t=>{const id='UL_'+t;return <button key={id} onClick={()=>toggleTooth(id)} className={`toggle-btn w-9 h-9 rounded-lg text-sm font-bold ${(checks.C1_teeth||[]).includes(id)?'bg-red-500 text-white':'bg-white border border-gray-300 text-gray-600'}`}>{t}</button>;})}
+                            <span className="text-xs text-gray-400 w-6 ml-1">左上</span>
+                          </div>
+                          <div className="border-t border-gray-300 my-1"></div>
+                          <div className="flex items-center gap-1">
+                            <span className="text-xs text-gray-400 w-6 text-right mr-1">右下</span>
+                            {['7','6','5','4','3','2','1'].map(t=>{const id='LR_'+t;return <button key={id} onClick={()=>toggleTooth(id)} className={`toggle-btn w-9 h-9 rounded-lg text-sm font-bold ${(checks.C1_teeth||[]).includes(id)?'bg-red-500 text-white':'bg-white border border-gray-300 text-gray-600'}`}>{t}</button>;})}
+                            <span className="text-gray-300 mx-0.5">|</span>
+                            {['1','2','3','4','5','6','7'].map(t=>{const id='LL_'+t;return <button key={id} onClick={()=>toggleTooth(id)} className={`toggle-btn w-9 h-9 rounded-lg text-sm font-bold ${(checks.C1_teeth||[]).includes(id)?'bg-red-500 text-white':'bg-white border border-gray-300 text-gray-600'}`}>{t}</button>;})}
+                            <span className="text-xs text-gray-400 w-6 ml-1">左下</span>
+                          </div>
+                        </div>
+                        {(checks.C1_teeth||[]).length > 0 && (
+                          <div className="mt-2 text-xs text-red-600 font-medium">選択中: {formatTeeth(checks.C1_teeth)}</div>
+                        )}
                       </div>
                     )}
                     {item.inputType === 'freetext' && (
@@ -1806,7 +1843,12 @@ function ManagementPlan({ patient, assessment, onSave, onBack, onClose, onPrint,
     Object.entries(assessment.checks || {}).forEach(([code, val]) => {
       const isChecked = code === 'C11' ? (val && val.length > 0) : code === 'C13' ? (val === 'underweight' || val === 'overweight') : code === 'C17' ? (val && val.length > 0) : val === true;
       if (isChecked && PLAN_TEMPLATES[code]) {
-        initial[code] = assessment.plans?.[code] || { ...PLAN_TEMPLATES[code] };
+        if (!assessment.plans?.[code] && code === 'C1' && assessment.checks?.C1_teeth?.length > 0) {
+          const teethText = formatTeeth(assessment.checks.C1_teeth);
+          initial[code] = { ...PLAN_TEMPLATES[code], problem: `歯の生え変わりが遅れており（${teethText}）、噛む力の発達やあごの成長に影響する可能性があります。` };
+        } else {
+          initial[code] = assessment.plans?.[code] || { ...PLAN_TEMPLATES[code] };
+        }
       }
     });
     return initial;
