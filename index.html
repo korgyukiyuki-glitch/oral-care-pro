@@ -870,7 +870,7 @@ function AssessmentForm({ patient, existingAssessment, onSave, onCancel }) {
           return (
             <div className={`rounded-xl p-3 mb-4 text-sm font-medium text-center border ${hColor}`}>
               <div><span className="font-bold">{patient.name}</span>（{age}歳） — 該当: <span className="font-bold text-lg">{hCount}項目</span></div>
-              <div className="font-bold mt-1">傷病名: {hDiag}</div>
+              {!patientMode && <div className="font-bold mt-1">傷病名: {hDiag}</div>}
             </div>
           );
         })()}
