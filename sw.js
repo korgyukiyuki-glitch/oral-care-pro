@@ -1,4 +1,4 @@
-const CACHE_NAME = 'oralcare-v3';
+const CACHE_NAME = 'oralcare-v4';
 self.addEventListener('install', event => {
   self.skipWaiting();
 });
